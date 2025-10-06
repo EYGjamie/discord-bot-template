@@ -2,7 +2,6 @@ package bot
 
 import (
 	"context"
-	"errors"
 	"log"
 	"os"
 
@@ -15,15 +14,23 @@ type Bot struct {
 }
 
 func New() (*Bot, error) {
+
+	// Load Bot Token from Environment Variable
+	// Later: Getting Token depending on environment (prod/dev)
 	token := os.Getenv("DISCORD_TOKEN")
 	if token == "" {
 		log.Fatal("DISCORD_TOKEN environment variable is required")
+		os.Exit(1)
 	}
 
+	// Creation Discord-Session
 	session, err := discordgo.New("Bot " + token)
 	if err != nil {
 		return nil, err
 	}
+
+	// Register Bot-Intents
+	session.Identify.Intents = discordgo.IntentsAll
 
 	return &Bot{
 		session: session,
@@ -31,10 +38,10 @@ func New() (*Bot, error) {
 	}, nil
 }
 
-func (b *Bot) Start(ctx context.Context) error {
-	b.registerHandlers()
+func (bot *Bot) Start(ctx context.Context) error {
+	bot.registerHandlers()
 
-	if err := b.session.Open(); err != nil {
+	if err := bot.session.Open(); err != nil {
 		return err
 	}
 
@@ -42,8 +49,6 @@ func (b *Bot) Start(ctx context.Context) error {
 	return nil
 }
 
-func (b *Bot) Stop() error {
-	return b.session.Close()
+func (bot *Bot) Stop() error {
+	return bot.session.Close()
 }
-
-

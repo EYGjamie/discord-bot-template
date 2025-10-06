@@ -1,5 +1,5 @@
 package bot
 
-func (b *Bot) registerHandlers() {
-	b.session.AddHandler(b.onReady)
+func (bot *Bot) registerHandlers() {
+	bot.session.AddHandler(bot.onReady)
 }
