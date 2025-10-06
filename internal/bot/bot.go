@@ -17,9 +17,9 @@ func New() (*Bot, error) {
 
 	// Load Bot Token from Environment Variable
 	// Later: Getting Token depending on environment (prod/dev)
-	token := os.Getenv("DISCORD_TOKEN")
+	token := os.Getenv("DISCORD_BOT_TOKEN")
 	if token == "" {
-		log.Fatal("DISCORD_TOKEN environment variable is required")
+		log.Fatal("DISCORD_BOT_TOKEN environment variable is required")
 		os.Exit(1)
 	}
 
