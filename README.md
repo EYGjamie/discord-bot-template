@@ -1,6 +1,22 @@
 # Project ovgu
 
-One Paragraph of project description goes here
+Discord Bot und Web-Anwendung für die OVGU (Otto-von-Guericke-Universität).
+
+## Projektstruktur
+
+```
+ovgu/
+├── cmd/
+│   ├── api/          # Web API Backend
+│   └── bot/          # Discord Bot
+├── internal/
+│   ├── bot/          # Bot-Logik (Commands, Events, Handlers)
+│   ├── database/     # Datenbank-Layer
+│   ├── server/       # API-Server
+│   └── shared/       # Gemeinsamer Code (Bot + API)
+├── frontend/         # React Frontend
+└── configs/          # Konfigurationsdateien
+```
 
 ## Getting Started
 
@@ -13,14 +29,24 @@ Run build make command with tests
 make all
 ```
 
-Build the application
+Build the API
 ```bash
 make build
 ```
 
-Run the application
+Build the Discord Bot
+```bash
+make build-bot
+```
+
+Run the API + Frontend
 ```bash
 make run
+```
+
+Run the Discord Bot
+```bash
+make run-bot
 ```
 Create DB container
 ```bash
@@ -47,7 +73,19 @@ Run the test suite:
 make test
 ```
 
-Clean up binary from the last build:
+Clean up binaries from the last build:
 ```bash
 make clean
 ```
+
+## Discord Bot Setup
+
+1. Erstelle eine Discord-Anwendung auf https://discord.com/developers/applications
+2. Kopiere den Bot-Token
+3. Erstelle eine `.env` Datei basierend auf `configs/bot.example.env`
+4. Füge deinen Token hinzu: `DISCORD_TOKEN=dein_token_hier`
+5. Starte den Bot mit `make run-bot`
+
+## Environment Variables
+
+Siehe `configs/bot.example.env` für alle verfügbaren Umgebungsvariablen.

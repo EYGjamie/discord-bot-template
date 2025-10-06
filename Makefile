@@ -4,16 +4,23 @@
 all: build test
 
 build:
-	@echo "Building..."
-	
-	
+	@echo "Building API..."
 	@go build -o main cmd/api/main.go
 
-# Run the application
+build-bot:
+	@echo "Building Discord Bot..."
+	@go build -o bot cmd/bot/main.go
+
+# Run the API + Frontend
 run:
 	@go run cmd/api/main.go &
 	@npm install --prefer-offline --no-fund --prefix ./frontend
 	@npm run dev --prefix ./frontend
+
+# Run the Discord Bot
+run-bot:
+	@echo "Starting Discord Bot..."
+	@go run cmd/bot/main.go
 # Create DB container
 docker-run:
 	@if docker compose up --build 2>/dev/null; then \
@@ -41,10 +48,10 @@ itest:
 	@echo "Running integration tests..."
 	@go test ./internal/database -v
 
-# Clean the binary
+# Clean the binaries
 clean:
 	@echo "Cleaning..."
-	@rm -f main
+	@rm -f main bot
 
 # Live Reload
 watch:
@@ -63,4 +70,4 @@ watch:
             fi; \
         fi
 
-.PHONY: all build run test clean watch docker-run docker-down itest
+.PHONY: all build build-bot run run-bot test clean watch docker-run docker-down itest
