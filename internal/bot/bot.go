@@ -14,13 +14,20 @@ type Bot struct {
 }
 
 func New() (*Bot, error) {
-
 	// Load Bot Token from Environment Variable
-	// Later: Getting Token depending on environment (prod/dev)
-	token := os.Getenv("DISCORD_BOT_TOKEN")
-	if token == "" {
-		log.Fatal("DISCORD_BOT_TOKEN environment variable is required")
-		os.Exit(1)
+	var token string
+	if os.Getenv("APP_ENV") == "production" {
+		token = os.Getenv("PROD_DISCORD_BOT_TOKEN")
+		if token == "" {
+			log.Fatal("PROD_DISCORD_BOT_TOKEN environment variable is required")
+			os.Exit(1)
+		}
+	} else {
+		token = os.Getenv("DEV_DISCORD_BOT_TOKEN")
+		if token == "" {
+			log.Fatal("DEV_DISCORD_BOT_TOKEN environment variable is required")
+			os.Exit(1)
+		}
 	}
 
 	// Creation Discord-Session
@@ -29,7 +36,7 @@ func New() (*Bot, error) {
 		return nil, err
 	}
 
-	// Register Bot-Intents
+	// Register ALL Bot-Intents
 	session.Identify.Intents = discordgo.IntentsAll
 
 	return &Bot{
