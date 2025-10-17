@@ -2,8 +2,11 @@ package bot
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"os"
+
+	"ovgu/internal/database"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -11,6 +14,7 @@ import (
 type Bot struct {
 	session *discordgo.Session
 	token   string
+	db      *sql.DB
 }
 
 func New() (*Bot, error) {
@@ -39,9 +43,19 @@ func New() (*Bot, error) {
 	// Register ALL Bot-Intents
 	session.Identify.Intents = discordgo.IntentsAll
 
+	// Initialize database connection
+	dbService := database.New()
+
+	// Initialize database tables
+	db := dbService.DB()
+	if err := database.InitializeTables(db); err != nil {
+		log.Printf("Warning: Failed to initialize database tables: %v", err)
+	}
+
 	return &Bot{
 		session: session,
 		token:   token,
+		db:      db,
 	}, nil
 }
 
