@@ -33,6 +33,7 @@ func CreateRoleTable(db *sql.DB) error {
 			hoist BOOLEAN NOT NULL DEFAULT FALSE,
 			mentionable BOOLEAN NOT NULL DEFAULT FALSE,
 			icon VARCHAR(255),
+			alias VARCHAR(255),
 			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
 		
@@ -151,6 +152,52 @@ func GetRoleByName(db *sql.DB, name string) (*Role, error) {
 	}
 
 	return role, nil
+}
+
+// GetRolesByAlias ruft alle Discord-Rollen mit einem bestimmten Alias ab
+func GetRolesByAlias(db *sql.DB, alias string) ([]*Role, error) {
+	query := `
+		SELECT id, name, mention, created_at, position, color, hoist, mentionable, icon, updated_at
+		FROM roles
+		WHERE alias = $1
+		ORDER BY position DESC
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.QueryContext(ctx, query, alias)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var roles []*Role
+	for rows.Next() {
+		role := &Role{}
+		err := rows.Scan(
+			&role.ID,
+			&role.Name,
+			&role.Mention,
+			&role.CreatedAt,
+			&role.Position,
+			&role.Color,
+			&role.Hoist,
+			&role.Mentionable,
+			&role.Icon,
+			&role.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		roles = append(roles, role)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return roles, nil
 }
 
 // UpdateRole aktualisiert eine Discord-Rolle

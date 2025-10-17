@@ -3,12 +3,12 @@ package events
 import (
 	"database/sql"
 
-	"ovgu/internal/shared/services/on_message"
+	"ovgu/internal/shared/services/events/message"
 
 	"github.com/bwmarrin/discordgo"
 )
 
-func OnMessageCreate(bot_session *discordgo.Session, message *discordgo.MessageCreate, db *sql.DB) {
+func OnMessageCreate(bot_session *discordgo.Session, user_message *discordgo.MessageCreate, db *sql.DB) {
 	// Logge die Nachricht in der Datenbank
-	on_message.LogMessage(db, message)
+	message.LogMessage(db, user_message)
 }

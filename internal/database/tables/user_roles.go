@@ -176,7 +176,8 @@ func GetRoleUsers(db *sql.DB, roleID string) ([]*User, error) {
 	return users, nil
 }
 
-// SyncUserRoles synchronisiert alle Rollen eines Users (löscht alte, fügt neue hinzu)
+// SyncUserRoles synchronisiert alle Rollen eines Users
+// Fügt neue Rollen hinzu und entfernt nur Rollen, die nicht mehr vorhanden sind
 func SyncUserRoles(db *sql.DB, userID string, roleIDs []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -188,18 +189,46 @@ func SyncUserRoles(db *sql.DB, userID string, roleIDs []string) error {
 	}
 	defer tx.Rollback()
 
-	// Alle bestehenden Rollen des Users löschen
-	deleteQuery := `DELETE FROM user_roles WHERE user_id = $1`
-	_, err = tx.ExecContext(ctx, deleteQuery, userID)
+	// Aktuelle Rollen des Users abrufen
+	currentQuery := `SELECT role_id FROM user_roles WHERE user_id = $1`
+	rows, err := tx.QueryContext(ctx, currentQuery, userID)
 	if err != nil {
 		return err
 	}
 
-	// Neue Rollen einfügen
-	if len(roleIDs) > 0 {
-		insertQuery := `INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2)`
-		for _, roleID := range roleIDs {
+	currentRoles := make(map[string]bool)
+	for rows.Next() {
+		var roleID string
+		if err := rows.Scan(&roleID); err != nil {
+			rows.Close()
+			return err
+		}
+		currentRoles[roleID] = true
+	}
+	rows.Close()
+
+	// Maps für neue und zu behaltende Rollen
+	newRoles := make(map[string]bool)
+	for _, roleID := range roleIDs {
+		newRoles[roleID] = true
+	}
+
+	// Rollen hinzufügen, die neu sind
+	insertQuery := `INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT (user_id, role_id) DO UPDATE SET updated_at = CURRENT_TIMESTAMP`
+	for roleID := range newRoles {
+		if !currentRoles[roleID] {
 			_, err = tx.ExecContext(ctx, insertQuery, userID, roleID)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// Rollen entfernen, die nicht mehr existieren
+	deleteQuery := `DELETE FROM user_roles WHERE user_id = $1 AND role_id = $2`
+	for roleID := range currentRoles {
+		if !newRoles[roleID] {
+			_, err = tx.ExecContext(ctx, deleteQuery, userID, roleID)
 			if err != nil {
 				return err
 			}
@@ -256,4 +285,27 @@ func GetRoleMemberCount(db *sql.DB, roleID string) (int, error) {
 	}
 
 	return count, nil
+}
+
+// UserHasRoleWithAlias prüft ob ein User eine Rolle mit einem bestimmten Alias hat
+func UserHasRoleWithAlias(db *sql.DB, userID, alias string) (bool, error) {
+	query := `
+		SELECT EXISTS(
+			SELECT 1
+			FROM user_roles ur
+			INNER JOIN roles r ON ur.role_id = r.id
+			WHERE ur.user_id = $1 AND r.alias = $2
+		)
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var exists bool
+	err := db.QueryRowContext(ctx, query, userID, alias).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
 }
