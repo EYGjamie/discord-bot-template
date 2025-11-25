@@ -1,4 +1,4 @@
-module ovgu
+module discord-bot-template
 
 go 1.24.6
 

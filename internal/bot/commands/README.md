@@ -1,6 +1,6 @@
 # Discord Bot Commands
 
-This directory contains all slash command implementations for the OVGU Discord bot.
+This directory contains all slash command implementations for the Discord bot.
 
 ## Structure
 

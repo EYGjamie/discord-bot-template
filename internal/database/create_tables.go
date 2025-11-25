@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"log"
 
-	"ovgu/internal/database/tables"
+	"discord-bot-template/internal/database/tables"
 )
 
 // InitializeTables erstellt alle benötigten Datenbanktabellen

@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"ovgu/internal/database"
+	"discord-bot-template/internal/database"
 
 	"github.com/bwmarrin/discordgo"
 )

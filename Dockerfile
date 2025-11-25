@@ -15,6 +15,22 @@ COPY --from=build /app/main /app/main
 EXPOSE ${PORT}
 CMD ["./main"]
 
+FROM golang:1.24.4-alpine AS bot_build
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN go build -o bot cmd/bot/main.go
+
+FROM alpine:3.20.1 AS bot
+WORKDIR /app
+COPY --from=bot_build /app/bot /app/bot
+CMD ["./bot"]
+
 
 FROM node:20 AS frontend_builder
 WORKDIR /frontend

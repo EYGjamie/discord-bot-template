@@ -1,4 +1,25 @@
 services:
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: bot
+    restart: unless-stopped
+    environment:
+      APP_ENV: ${APP_ENV}
+      DEV_DISCORD_BOT_TOKEN: ${DEV_DISCORD_BOT_TOKEN}
+      PROD_DISCORD_BOT_TOKEN: ${PROD_DISCORD_BOT_TOKEN}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_SCHEMA: ${DB_SCHEMA}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - bot_network
   app:
     build:
       context: .
@@ -17,10 +38,10 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_SCHEMA: ${DB_SCHEMA}
     depends_on:
-      psql_ovgu:
+      postgres:
         condition: service_healthy
     networks:
-      - ovgu
+      - bot_network
   frontend:
     build:
       context: .
@@ -32,8 +53,8 @@ services:
     ports:
       - 5173:5173
     networks:
-      - ovgu
-  psql_ovgu:
+      - bot_network
+  postgres:
     image: postgres:latest
     restart: unless-stopped
     environment:
@@ -43,7 +64,7 @@ services:
     ports:
       - "${DB_PORT}:5432"
     volumes:
-      - psql_volume_ovgu:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "sh -c 'pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}'"]
       interval: 5s
@@ -51,9 +72,9 @@ services:
       retries: 3
       start_period: 15s
     networks:
-      - ovgu
+      - bot_network
 
 volumes:
-  psql_volume_ovgu:
+  postgres_data:
 networks:
-  ovgu:
+  bot_network:

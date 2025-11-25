@@ -1,7 +1,7 @@
 package bot
 
 import (
-	"ovgu/internal/bot/events"
+	"discord-bot-template/internal/bot/events"
 
 	"github.com/bwmarrin/discordgo"
 )

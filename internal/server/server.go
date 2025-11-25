@@ -9,7 +9,7 @@ import (
 
 	_ "github.com/joho/godotenv/autoload"
 
-	"ovgu/internal/database"
+	"discord-bot-template/internal/database"
 )
 
 type Server struct {

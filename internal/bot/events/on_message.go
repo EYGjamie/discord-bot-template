@@ -3,7 +3,7 @@ package events
 import (
 	"database/sql"
 
-	"ovgu/internal/shared/services/events/message"
+	"discord-bot-template/internal/shared/services/events/message"
 
 	"github.com/bwmarrin/discordgo"
 )

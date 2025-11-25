@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"log"
 
-	"ovgu/internal/database/tables"
+	"discord-bot-template/internal/database/tables"
 
 	"github.com/bwmarrin/discordgo"
 )
