@@ -1,11 +1,15 @@
-# Project ovgu
+# Discord Bot Template
 
+<<<<<<< Updated upstream
 Discord Bot und Web-Anwendung
+=======
+A template project for building a Discord bot with a web application and API backend.
+>>>>>>> Stashed changes
 
-## Projektstruktur
+## Project Structure
 
 ```
-ovgu/
+discord-bot-template/
 ├── cmd/
 │   ├── api/          # Web API Backend
 │   └── bot/          # Discord Bot
