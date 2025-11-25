@@ -1,6 +1,6 @@
 # Project ovgu
 
-Discord Bot und Web-Anwendung für die OVGU (Otto-von-Guericke-Universität).
+Discord Bot und Web-Anwendung
 
 ## Projektstruktur
 
