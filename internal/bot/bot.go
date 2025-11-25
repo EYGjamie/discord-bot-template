@@ -6,15 +6,17 @@ import (
 	"log"
 	"os"
 
+	"discord-bot-template/internal/bot/settings"
 	"discord-bot-template/internal/database"
 
 	"github.com/bwmarrin/discordgo"
 )
 
 type Bot struct {
-	session *discordgo.Session
-	token   string
-	db      *sql.DB
+	session  *discordgo.Session
+	token    string
+	db       *sql.DB
+	settings *settings.Manager
 }
 
 func New() (*Bot, error) {
@@ -52,10 +54,14 @@ func New() (*Bot, error) {
 		log.Printf("Warning: Failed to initialize database tables: %v", err)
 	}
 
+	// Initialize settings manager
+	settingsManager := settings.NewManager(db)
+
 	return &Bot{
-		session: session,
-		token:   token,
-		db:      db,
+		session:  session,
+		token:    token,
+		db:       db,
+		settings: settingsManager,
 	}, nil
 }
 

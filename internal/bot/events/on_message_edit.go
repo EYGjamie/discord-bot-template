@@ -1,7 +1,19 @@
 package events
 
-import "github.com/bwmarrin/discordgo"
+import (
+	"discord-bot-template/internal/bot/settings"
+	"discord-bot-template/internal/shared/services/moderation"
 
-func OnMessageUpdate(bot_session *discordgo.Session, message *discordgo.MessageUpdate) {
-	// Function
+	"github.com/bwmarrin/discordgo"
+)
+
+func OnMessageUpdate(bot_session *discordgo.Session, message *discordgo.MessageUpdate, settingsManager *settings.Manager) {
+	// Hole die vollständige Nachricht vor dem Edit (wenn gecacht)
+	if message.BeforeUpdate == nil {
+		// Keine Before-Daten verfügbar, überspringen
+		return
+	}
+
+	// Logge die bearbeitete Nachricht
+	moderation.LogMessageEdit(bot_session, settingsManager, message.BeforeUpdate, message.Message)
 }

@@ -109,6 +109,74 @@ func InsertUser(db *sql.DB, user *User) (*User, error) {
 	return result, nil
 }
 
+// UpsertUser fügt einen neuen User ein oder aktualisiert einen existierenden
+// Pro User gibt es genau einen Datensatz in der Datenbank
+func UpsertUser(db *sql.DB, user *User) (*User, error) {
+	query := `
+		INSERT INTO users (id, name, global_name, display_name, bot, avatar, avatar_url, mention, created_at, nick, joined_at, top_role, timed_out_until, premium_since)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+		ON CONFLICT (id) DO UPDATE SET
+			name = EXCLUDED.name,
+			global_name = EXCLUDED.global_name,
+			display_name = EXCLUDED.display_name,
+			bot = EXCLUDED.bot,
+			avatar = EXCLUDED.avatar,
+			avatar_url = EXCLUDED.avatar_url,
+			mention = EXCLUDED.mention,
+			created_at = EXCLUDED.created_at,
+			nick = EXCLUDED.nick,
+			joined_at = EXCLUDED.joined_at,
+			top_role = EXCLUDED.top_role,
+			timed_out_until = EXCLUDED.timed_out_until,
+			premium_since = EXCLUDED.premium_since,
+			updated_at = CURRENT_TIMESTAMP
+		RETURNING id, name, global_name, display_name, bot, avatar, avatar_url, mention, created_at, nick, joined_at, top_role, timed_out_until, premium_since, updated_at
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	result := &User{}
+	err := db.QueryRowContext(ctx, query,
+		user.ID,
+		user.Name,
+		user.GlobalName,
+		user.DisplayName,
+		user.Bot,
+		user.Avatar,
+		user.AvatarURL,
+		user.Mention,
+		user.CreatedAt,
+		user.Nick,
+		user.JoinedAt,
+		user.TopRole,
+		user.TimedOutUntil,
+		user.PremiumSince,
+	).Scan(
+		&result.ID,
+		&result.Name,
+		&result.GlobalName,
+		&result.DisplayName,
+		&result.Bot,
+		&result.Avatar,
+		&result.AvatarURL,
+		&result.Mention,
+		&result.CreatedAt,
+		&result.Nick,
+		&result.JoinedAt,
+		&result.TopRole,
+		&result.TimedOutUntil,
+		&result.PremiumSince,
+		&result.UpdatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 // GetUserByID ruft einen Discord-Benutzer anhand der Discord ID ab
 func GetUserByID(db *sql.DB, id string) (*User, error) {
 	query := `
