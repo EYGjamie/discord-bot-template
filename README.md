@@ -1,10 +1,6 @@
 # Discord Bot Template
 
-<<<<<<< Updated upstream
-Discord Bot und Web-Anwendung
-=======
 A template project for building a Discord bot with a web application and API backend.
->>>>>>> Stashed changes
 
 ## Project Structure
 
