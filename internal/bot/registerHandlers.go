@@ -35,4 +35,13 @@ func (bot *Bot) registerHandlers() {
 	bot.session.AddHandler(func(bot_session *discordgo.Session, VoiceStateUpdate *discordgo.VoiceStateUpdate) {
 		events.OnVoiceStateUpdate(bot_session, VoiceStateUpdate, bot.db)
 	})
+	bot.session.AddHandler(func(bot_session *discordgo.Session, GuildRoleCreate *discordgo.GuildRoleCreate) {
+		events.OnGuildRoleCreate(bot_session, GuildRoleCreate, bot.db)
+	})
+	bot.session.AddHandler(func(bot_session *discordgo.Session, GuildRoleUpdate *discordgo.GuildRoleUpdate) {
+		events.OnGuildRoleUpdate(bot_session, GuildRoleUpdate, bot.db)
+	})
+	bot.session.AddHandler(func(bot_session *discordgo.Session, GuildRoleDelete *discordgo.GuildRoleDelete) {
+		events.OnGuildRoleDelete(bot_session, GuildRoleDelete, bot.db)
+	})
 }

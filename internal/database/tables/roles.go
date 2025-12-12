@@ -244,6 +244,59 @@ func UpdateRole(db *sql.DB, role *Role) (*Role, error) {
 	return result, nil
 }
 
+// UpsertRole fügt eine neue Rolle ein oder aktualisiert eine existierende
+// Pro Rolle gibt es genau einen Datensatz in der Datenbank
+func UpsertRole(db *sql.DB, role *Role) (*Role, error) {
+	query := `
+		INSERT INTO roles (id, name, mention, created_at, position, color, hoist, mentionable, icon)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		ON CONFLICT (id) DO UPDATE SET
+			name = EXCLUDED.name,
+			mention = EXCLUDED.mention,
+			created_at = EXCLUDED.created_at,
+			position = EXCLUDED.position,
+			color = EXCLUDED.color,
+			hoist = EXCLUDED.hoist,
+			mentionable = EXCLUDED.mentionable,
+			icon = EXCLUDED.icon,
+			updated_at = CURRENT_TIMESTAMP
+		RETURNING id, name, mention, created_at, position, color, hoist, mentionable, icon, updated_at
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	result := &Role{}
+	err := db.QueryRowContext(ctx, query,
+		role.ID,
+		role.Name,
+		role.Mention,
+		role.CreatedAt,
+		role.Position,
+		role.Color,
+		role.Hoist,
+		role.Mentionable,
+		role.Icon,
+	).Scan(
+		&result.ID,
+		&result.Name,
+		&result.Mention,
+		&result.CreatedAt,
+		&result.Position,
+		&result.Color,
+		&result.Hoist,
+		&result.Mentionable,
+		&result.Icon,
+		&result.UpdatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 // DeleteRole löscht eine Discord-Rolle
 func DeleteRole(db *sql.DB, id string) error {
 	query := `DELETE FROM roles WHERE id = $1`
