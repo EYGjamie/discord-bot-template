@@ -1,4 +1,4 @@
-FROM golang:1.24.4-alpine AS build
+FROM golang:1.25.5-alpine AS build
 
 WORKDIR /app
 
@@ -9,13 +9,13 @@ COPY . .
 
 RUN go build -o main cmd/api/main.go
 
-FROM alpine:3.20.1 AS prod
+FROM alpine:3.21 AS prod
 WORKDIR /app
 COPY --from=build /app/main /app/main
 EXPOSE ${PORT}
 CMD ["./main"]
 
-FROM golang:1.24.4-alpine AS bot_build
+FROM golang:1.25.5-alpine AS bot_build
 
 WORKDIR /app
 
@@ -26,13 +26,13 @@ COPY . .
 
 RUN go build -o bot cmd/bot/main.go
 
-FROM alpine:3.20.1 AS bot
+FROM alpine:3.21 AS bot
 WORKDIR /app
 COPY --from=bot_build /app/bot /app/bot
 CMD ["./bot"]
 
 
-FROM node:20 AS frontend_builder
+FROM node:23-slim AS frontend_builder
 WORKDIR /frontend
 
 COPY frontend/package*.json ./
