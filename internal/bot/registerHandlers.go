@@ -6,24 +6,33 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+// registerHandlers registriert alle Event-Handler für den Bot
+// Diese Funktion wird beim Start des Bots aufgerufen
 func (bot *Bot) registerHandlers() {
 	bot.session.AddHandler(bot.onReady)
-	bot.session.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
-		events.OnMessageCreate(s, m, bot.db)
+
+	bot.session.AddHandler(func(bot_session *discordgo.Session, MessageCreate *discordgo.MessageCreate) {
+		events.OnMessageCreate(bot_session, MessageCreate, bot.db)
 	})
-	bot.session.AddHandler(func(s *discordgo.Session, m *discordgo.GuildMemberAdd) {
-		events.OnGuildMemberAdd(s, m, bot.db)
+	bot.session.AddHandler(func(bot_session *discordgo.Session, GuildMemberAdd *discordgo.GuildMemberAdd) {
+		events.OnGuildMemberAdd(bot_session, GuildMemberAdd, bot.db)
 	})
-	bot.session.AddHandler(func(s *discordgo.Session, m *discordgo.GuildMemberRemove) {
-		events.OnGuildMemberRemove(s, m, bot.db)
+	bot.session.AddHandler(func(bot_session *discordgo.Session, GuildMemberRemove *discordgo.GuildMemberRemove) {
+		events.OnGuildMemberRemove(bot_session, GuildMemberRemove, bot.db)
 	})
-	bot.session.AddHandler(func(s *discordgo.Session, m *discordgo.GuildMemberUpdate) {
-		events.OnGuildMemberUpdate(s, m, bot.db)
+	bot.session.AddHandler(func(bot_session *discordgo.Session, GuildMemberUpdate *discordgo.GuildMemberUpdate) {
+		events.OnGuildMemberUpdate(bot_session, GuildMemberUpdate, bot.db)
 	})
-	bot.session.AddHandler(func(s *discordgo.Session, m *discordgo.MessageUpdate) {
-		events.OnMessageUpdate(s, m, bot.settings)
+	bot.session.AddHandler(func(bot_session *discordgo.Session, MessageUpdate *discordgo.MessageUpdate) {
+		events.OnMessageUpdate(bot_session, MessageUpdate, bot.settings)
 	})
-	bot.session.AddHandler(func(s *discordgo.Session, m *discordgo.MessageDelete) {
-		events.OnMessageDelete(s, m, bot.settings)
+	bot.session.AddHandler(func(bot_session *discordgo.Session, MessageDelete *discordgo.MessageDelete) {
+		events.OnMessageDelete(bot_session, MessageDelete, bot.settings)
+	})
+	bot.session.AddHandler(func(bot_session *discordgo.Session, UserUpdate *discordgo.UserUpdate) {
+		events.OnUserUpdate(bot_session, UserUpdate, bot.db)
+	})
+	bot.session.AddHandler(func(bot_session *discordgo.Session, VoiceStateUpdate *discordgo.VoiceStateUpdate) {
+		events.OnVoiceStateUpdate(bot_session, VoiceStateUpdate, bot.db)
 	})
 }

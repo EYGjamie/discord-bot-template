@@ -41,6 +41,13 @@ func InitializeTables(db *sql.DB) error {
 	}
 	log.Println("User-Messages-Logs table initialized successfully")
 
+	// Erstelle User-Voice-Logs-Tabelle
+	if err := tables.CreateUserVoiceLogsTable(db); err != nil {
+		log.Printf("Error creating user_voice_logs table: %v", err)
+		return err
+	}
+	log.Println("User-Voice-Logs table initialized successfully")
+
 	// Erstelle Bot-Settings-Tabelle
 	if err := tables.CreateBotSettingsTable(db); err != nil {
 		log.Printf("Error creating bot_settings table: %v", err)
