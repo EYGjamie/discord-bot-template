@@ -9,8 +9,11 @@ import (
 // registerHandlers registriert alle Event-Handler für den Bot
 // Diese Funktion wird beim Start des Bots aufgerufen
 func (bot *Bot) registerHandlers() {
+
+	// OnReady Handler
 	bot.session.AddHandler(bot.onReady)
 
+	// Event Handler Registrierung
 	bot.session.AddHandler(func(bot_session *discordgo.Session, MessageCreate *discordgo.MessageCreate) {
 		events.OnMessageCreate(bot_session, MessageCreate, bot.db)
 	})
@@ -56,4 +59,7 @@ func (bot *Bot) registerHandlers() {
 	bot.session.AddHandler(func(bot_session *discordgo.Session, GuildCreate *discordgo.GuildCreate) {
 		events.OnGuildCreate(bot_session, GuildCreate, bot.db)
 	})
+
+	// Interaction Handler
+	bot.session.AddHandler(bot.onInteractionCreate)
 }

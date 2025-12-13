@@ -8,4 +8,7 @@ import (
 
 func (bot *Bot) onReady(s *discordgo.Session, event *discordgo.Ready) {
 	log.Printf("Logged in as: %v#%v", s.State.User.Username, s.State.User.Discriminator)
+
+	// Registriere Commands nachdem der Bot bereit ist
+	bot.registerCommands()
 }
