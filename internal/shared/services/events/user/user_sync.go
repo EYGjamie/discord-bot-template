@@ -28,6 +28,16 @@ func UpsertUser(db *sql.DB, discordUser *discordgo.User, member *discordgo.Membe
 		return
 	}
 
+	// Synchronisiere die Rollen des Users, falls Member-Daten vorhanden sind
+	if member != nil && len(member.Roles) > 0 {
+		err = tables.SyncUserRoles(db, discordUser.ID, member.Roles)
+		if err != nil {
+			log.Printf("Fehler beim Synchronisieren der Rollen für User %s: %v", discordUser.ID, err)
+		} else {
+			log.Printf("Rollen für User %s wurden synchronisiert (%d Rollen)", discordUser.Username, len(member.Roles))
+		}
+	}
+
 	log.Printf("User %s (%s) wurde in die Datenbank synchronisiert", discordUser.Username, discordUser.ID)
 }
 
@@ -68,7 +78,6 @@ func RemoveUser(db *sql.DB, discordUser *discordgo.User) {
 func buildUserFromDiscord(discordUser *discordgo.User, member *discordgo.Member) *tables.User {
 	// Discord Snowflake ID zu Timestamp konvertieren
 	// Discord Snowflake Format: ((timestamp_ms - DISCORD_EPOCH) << 22) | internal_data
-	const discordEpoch = 1420070400000 // Discord Epoch: 2015-01-01T00:00:00.000Z
 	userID := discordUser.ID
 	var createdAt time.Time
 
