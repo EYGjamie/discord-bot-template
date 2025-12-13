@@ -53,4 +53,7 @@ func (bot *Bot) registerHandlers() {
 	bot.session.AddHandler(func(bot_session *discordgo.Session, ChannelDelete *discordgo.ChannelDelete) {
 		events.OnChannelDelete(bot_session, ChannelDelete, bot.db)
 	})
+	bot.session.AddHandler(func(bot_session *discordgo.Session, GuildCreate *discordgo.GuildCreate) {
+		events.OnGuildCreate(bot_session, GuildCreate, bot.db)
+	})
 }
