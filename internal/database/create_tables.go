@@ -62,6 +62,20 @@ func InitializeTables(db *sql.DB) error {
 	}
 	log.Println("Bot-Settings table initialized successfully")
 
+	// Erstelle User-Joins-Tabelle
+	if err := tables.CreateUserJoinsTable(db); err != nil {
+		log.Printf("Error creating user_joins table: %v", err)
+		return err
+	}
+	log.Println("User-Joins table initialized successfully")
+
+	// Erstelle User-Leaves-Tabelle
+	if err := tables.CreateUserLeavesTable(db); err != nil {
+		log.Printf("Error creating user_leaves table: %v", err)
+		return err
+	}
+	log.Println("User-Leaves table initialized successfully")
+
 	log.Println("All database tables initialized successfully")
 	return nil
 }

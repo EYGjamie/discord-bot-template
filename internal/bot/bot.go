@@ -13,10 +13,11 @@ import (
 )
 
 type Bot struct {
-	session  *discordgo.Session
-	token    string
-	db       *sql.DB
-	settings *settings.Manager
+	session     *discordgo.Session
+	token       string
+	db          *sql.DB
+	settings    *settings.Manager
+	inviteCache *InviteCache
 }
 
 func New() (*Bot, error) {
@@ -57,11 +58,15 @@ func New() (*Bot, error) {
 	// Initialize settings manager
 	settingsManager := settings.NewManager(db)
 
+	// Initialize invite cache
+	inviteCache := NewInviteCache()
+
 	return &Bot{
-		session:  session,
-		token:    token,
-		db:       db,
-		settings: settingsManager,
+		session:     session,
+		token:       token,
+		db:          db,
+		settings:    settingsManager,
+		inviteCache: inviteCache,
 	}, nil
 }
 

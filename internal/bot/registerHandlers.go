@@ -18,7 +18,7 @@ func (bot *Bot) registerHandlers() {
 		events.OnMessageCreate(bot_session, MessageCreate, bot.db)
 	})
 	bot.session.AddHandler(func(bot_session *discordgo.Session, GuildMemberAdd *discordgo.GuildMemberAdd) {
-		events.OnGuildMemberAdd(bot_session, GuildMemberAdd, bot.db)
+		events.OnGuildMemberAdd(bot_session, GuildMemberAdd, bot.db, bot.inviteCache)
 	})
 	bot.session.AddHandler(func(bot_session *discordgo.Session, GuildMemberRemove *discordgo.GuildMemberRemove) {
 		events.OnGuildMemberRemove(bot_session, GuildMemberRemove, bot.db)
