@@ -1,7 +1,14 @@
 package events
 
-import "github.com/bwmarrin/discordgo"
+import (
+	"database/sql"
 
-func OnChannelCreate(bot_session *discordgo.Session, channel *discordgo.ChannelCreate) {
-	// Function
+	"discord-bot-template/internal/shared/services/events/channel"
+
+	"github.com/bwmarrin/discordgo"
+)
+
+func OnChannelCreate(bot_session *discordgo.Session, channelCreate *discordgo.ChannelCreate, db *sql.DB) {
+	// Synchronisiere neuen Channel in Datenbank
+	channel.UpsertChannel(db, channelCreate.Channel)
 }

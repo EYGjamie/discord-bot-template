@@ -44,4 +44,13 @@ func (bot *Bot) registerHandlers() {
 	bot.session.AddHandler(func(bot_session *discordgo.Session, GuildRoleDelete *discordgo.GuildRoleDelete) {
 		events.OnGuildRoleDelete(bot_session, GuildRoleDelete, bot.db)
 	})
+	bot.session.AddHandler(func(bot_session *discordgo.Session, ChannelCreate *discordgo.ChannelCreate) {
+		events.OnChannelCreate(bot_session, ChannelCreate, bot.db)
+	})
+	bot.session.AddHandler(func(bot_session *discordgo.Session, ChannelUpdate *discordgo.ChannelUpdate) {
+		events.OnChannelUpdate(bot_session, ChannelUpdate, bot.db)
+	})
+	bot.session.AddHandler(func(bot_session *discordgo.Session, ChannelDelete *discordgo.ChannelDelete) {
+		events.OnChannelDelete(bot_session, ChannelDelete, bot.db)
+	})
 }

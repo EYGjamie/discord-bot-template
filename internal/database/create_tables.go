@@ -27,6 +27,13 @@ func InitializeTables(db *sql.DB) error {
 	}
 	log.Println("Roles table initialized successfully")
 
+	// Erstelle Channels-Tabelle
+	if err := tables.CreateChannelTable(db); err != nil {
+		log.Printf("Error creating channels table: %v", err)
+		return err
+	}
+	log.Println("Channels table initialized successfully")
+
 	// Erstelle User-Roles Junction-Tabelle
 	if err := tables.CreateUserRoleTable(db); err != nil {
 		log.Printf("Error creating user_roles table: %v", err)
