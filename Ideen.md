@@ -1,0 +1,14 @@
+
+- Social News
+- Stats Api
+- Giveaways
+- Channel Purger
+- Create Voice
+- Coinflip [x]
+- Minigames
+    - quiz
+    - schere stein papier
+    - reaction test
+    - tik tak toe
+    - 4 gewinnt
+    - wordl
