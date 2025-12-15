@@ -5,6 +5,7 @@ import (
 
 	"discord-bot-template/internal/bot/settings"
 	"discord-bot-template/internal/database/tables"
+	"discord-bot-template/internal/shared/utils/logging"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -161,13 +162,16 @@ func HandleModerationCommand(s *discordgo.Session, i *discordgo.InteractionCreat
 }
 
 func handleSetChannel(s *discordgo.Session, i *discordgo.InteractionCreate, settingsManager *settings.Manager, options []*discordgo.ApplicationCommandInteractionDataOption) {
+	logger := logging.NewLogger(settingsManager.GetDB(), s, i.GuildID, "bot.commands.moderation")
 	channelID := options[0].ChannelValue(s).ID
 
 	err := settingsManager.SetString("moderation_channel_id", channelID, true)
 	if err != nil {
+		logger.LogError("Moderation Channel Set Failed", fmt.Sprintf("Failed to set moderation channel: %v", err), "")
 		respondError(s, i, fmt.Sprintf("Fehler beim Speichern: %v", err))
 		return
 	}
+	logger.LogInfo("Moderation Channel Updated", fmt.Sprintf("Channel set to %s", channelID), false)
 
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -185,6 +189,7 @@ func handleSetChannel(s *discordgo.Session, i *discordgo.InteractionCreate, sett
 }
 
 func handleToggleEdits(s *discordgo.Session, i *discordgo.InteractionCreate, settingsManager *settings.Manager, options []*discordgo.ApplicationCommandInteractionDataOption) {
+	logger := logging.NewLogger(settingsManager.GetDB(), s, i.GuildID, "bot.commands.moderation")
 	enabled := options[0].BoolValue()
 
 	err := settingsManager.SetEnabled("log_message_edits", enabled)
@@ -192,10 +197,12 @@ func handleToggleEdits(s *discordgo.Session, i *discordgo.InteractionCreate, set
 		// Falls Setting nicht existiert, erstelle es
 		err = settingsManager.SetBool("log_message_edits", true, enabled)
 		if err != nil {
+			logger.LogError("Toggle Edits Failed", fmt.Sprintf("Failed to toggle message edits logging: %v", err), "")
 			respondError(s, i, fmt.Sprintf("Fehler beim Speichern: %v", err))
 			return
 		}
 	}
+	logger.LogInfo("Message Edits Logging Toggled", fmt.Sprintf("Message edits logging set to: %v", enabled), false)
 
 	status := "deaktiviert"
 	if enabled {
@@ -218,6 +225,7 @@ func handleToggleEdits(s *discordgo.Session, i *discordgo.InteractionCreate, set
 }
 
 func handleToggleDeletes(s *discordgo.Session, i *discordgo.InteractionCreate, settingsManager *settings.Manager, options []*discordgo.ApplicationCommandInteractionDataOption) {
+	logger := logging.NewLogger(settingsManager.GetDB(), s, i.GuildID, "bot.commands.moderation")
 	enabled := options[0].BoolValue()
 
 	err := settingsManager.SetEnabled("log_message_deletes", enabled)
@@ -225,10 +233,12 @@ func handleToggleDeletes(s *discordgo.Session, i *discordgo.InteractionCreate, s
 		// Falls Setting nicht existiert, erstelle es
 		err = settingsManager.SetBool("log_message_deletes", true, enabled)
 		if err != nil {
+			logger.LogError("Toggle Deletes Failed", fmt.Sprintf("Failed to toggle message deletes logging: %v", err), "")
 			respondError(s, i, fmt.Sprintf("Fehler beim Speichern: %v", err))
 			return
 		}
 	}
+	logger.LogInfo("Message Deletes Logging Toggled", fmt.Sprintf("Message deletes logging set to: %v", enabled), false)
 
 	status := "deaktiviert"
 	if enabled {

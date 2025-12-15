@@ -2,10 +2,12 @@ package user
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"time"
 
 	"discord-bot-template/internal/database/tables"
+	"discord-bot-template/internal/shared/utils/logging"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -21,10 +23,13 @@ func UpsertUser(db *sql.DB, discordUser *discordgo.User, member *discordgo.Membe
 	// Erstelle User-Objekt mit Discord-Daten
 	user := buildUserFromDiscord(discordUser, member)
 
+	logger := logging.NewLogger(db, nil, "", "service.user_sync")
+
 	// Nutze die UpsertUser-Funktion aus tables, die ON CONFLICT verwendet
 	_, err := tables.UpsertUser(db, user)
 	if err != nil {
 		log.Printf("Fehler beim Upsert des Users %s: %v", discordUser.ID, err)
+		logger.LogError("User Upsert Failed", fmt.Sprintf("Failed to upsert user %s: %v", discordUser.Username, err), "")
 		return
 	}
 
@@ -33,6 +38,7 @@ func UpsertUser(db *sql.DB, discordUser *discordgo.User, member *discordgo.Membe
 		err = tables.SyncUserRoles(db, discordUser.ID, member.Roles)
 		if err != nil {
 			log.Printf("Fehler beim Synchronisieren der Rollen für User %s: %v", discordUser.ID, err)
+			logger.LogError("Role Sync Failed", fmt.Sprintf("Failed to sync roles for user %s: %v", discordUser.Username, err), "")
 		} else {
 			log.Printf("Rollen für User %s wurden synchronisiert (%d Rollen)", discordUser.Username, len(member.Roles))
 		}
@@ -66,9 +72,11 @@ func RemoveUser(db *sql.DB, discordUser *discordgo.User) {
 	existingUser.TimedOutUntil = nil
 	existingUser.PremiumSince = nil
 
+	logger := logging.NewLogger(db, nil, "", "service.user_sync")
 	_, err = tables.UpdateUser(db, existingUser)
 	if err != nil {
 		log.Printf("Fehler beim Aktualisieren des Users %s nach Remove: %v", discordUser.ID, err)
+		logger.LogError("User Remove Failed", fmt.Sprintf("Failed to update user %s after removal: %v", discordUser.Username, err), "")
 		return
 	}
 	log.Printf("User %s (%s) hat den Server verlassen - joined_at wurde auf NULL gesetzt", discordUser.Username, discordUser.ID)

@@ -2,10 +2,12 @@ package events
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 
 	"discord-bot-template/internal/database/tables"
 	"discord-bot-template/internal/shared/services/events/user"
+	"discord-bot-template/internal/shared/utils/logging"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -16,6 +18,8 @@ type InviteCache interface {
 }
 
 func OnGuildMemberAdd(bot_session *discordgo.Session, memberAdd *discordgo.GuildMemberAdd, db *sql.DB, inviteCache InviteCache) {
+	logger := logging.NewLogger(db, bot_session, memberAdd.GuildID, "bot.events.member_join")
+
 	// Synchronisiere User in Datenbank
 	user.UpsertUser(db, memberAdd.User, memberAdd.Member)
 
@@ -23,6 +27,7 @@ func OnGuildMemberAdd(bot_session *discordgo.Session, memberAdd *discordgo.Guild
 	usedInvite, err := inviteCache.GetUsedInvite(bot_session, memberAdd.GuildID)
 	if err != nil {
 		log.Printf("Fehler beim Ermitteln des verwendeten Invites für User %s: %v", memberAdd.User.ID, err)
+		logger.LogError("Invite Detection Failed", fmt.Sprintf("Failed to detect invite for user %s: %v", memberAdd.User.Username, err), "")
 	}
 
 	// Extrahiere Invite-Informationen

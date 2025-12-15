@@ -2,9 +2,11 @@ package message
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 
 	"discord-bot-template/internal/database/tables"
+	"discord-bot-template/internal/shared/utils/logging"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -17,10 +19,13 @@ func LogMessage(db *sql.DB, user_message *discordgo.MessageCreate) {
 		return
 	}
 
+	logger := logging.NewLogger(db, nil, user_message.GuildID, "service.message_log")
+
 	// Logge die Nachricht in der Datenbank
 	err := tables.InsertUserMessageLog(db, user_message.Author.ID, user_message.ChannelID)
 	if err != nil {
 		log.Printf("Fehler beim Loggen der Nachricht: %v", err)
+		logger.LogError("Message Log Insert Failed", fmt.Sprintf("Failed to log message from user %s: %v", user_message.Author.Username, err), "")
 		return
 	}
 

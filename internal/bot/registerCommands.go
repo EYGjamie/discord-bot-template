@@ -1,9 +1,11 @@
 package bot
 
 import (
+	"fmt"
 	"log"
 
 	"discord-bot-template/internal/bot/commands"
+	"discord-bot-template/internal/shared/utils/logging"
 )
 
 // registerCommands registriert alle Slash Commands für alle Guilds
@@ -21,18 +23,24 @@ func (bot *Bot) registerCommands() {
 		return
 	}
 
+	logger := logging.NewLogger(bot.db, bot.session, "", "bot.commands.register")
 	log.Printf("Registriere Commands für %d Guild(s)...", len(guilds))
+	logger.LogInfo("Command Registration Started", fmt.Sprintf("Registering commands for %d guilds", len(guilds)), false)
 
+	successCount := 0
 	for _, guild := range guilds {
 		// Registriere Commands für jede Guild
 		if err := commands.SetupModerationCommand(bot.session, guild.ID); err != nil {
 			log.Printf("Fehler beim Registrieren des /moderation Commands für Guild %s: %v", guild.ID, err)
+			logger.LogError("Command Registration Failed", fmt.Sprintf("Failed to register /moderation for guild %s: %v", guild.Name, err), "")
 		} else {
 			log.Printf("✓ Command /moderation registriert für Guild: %s (%s)", guild.Name, guild.ID)
+			successCount++
 		}
 	}
 
 	log.Println("Command-Registrierung abgeschlossen")
+	logger.LogInfo("Command Registration Completed", fmt.Sprintf("Successfully registered commands in %d/%d guilds", successCount, len(guilds)), false)
 }
 
 // removeCommands entfernt alle registrierten Commands (z.B. beim Shutdown)
@@ -41,11 +49,13 @@ func (bot *Bot) removeCommands() {
 		return
 	}
 
+	logger := logging.NewLogger(bot.db, bot.session, "", "bot.commands.cleanup")
 	guilds := bot.session.State.Guilds
 	for _, guild := range guilds {
 		commands, err := bot.session.ApplicationCommands(bot.session.State.User.ID, guild.ID)
 		if err != nil {
 			log.Printf("Fehler beim Abrufen der Commands für Guild %s: %v", guild.ID, err)
+			logger.LogError("Command Fetch Failed", fmt.Sprintf("Failed to fetch commands for guild %s: %v", guild.Name, err), "")
 			continue
 		}
 
@@ -53,9 +63,11 @@ func (bot *Bot) removeCommands() {
 			err := bot.session.ApplicationCommandDelete(bot.session.State.User.ID, guild.ID, cmd.ID)
 			if err != nil {
 				log.Printf("Fehler beim Löschen des Commands %s: %v", cmd.Name, err)
+				logger.LogError("Command Deletion Failed", fmt.Sprintf("Failed to delete command %s from guild %s: %v", cmd.Name, guild.Name, err), "")
 			} else {
 				log.Printf("Command %s gelöscht von Guild %s", cmd.Name, guild.Name)
 			}
 		}
 	}
+	logger.LogInfo("Commands Removed", "All commands successfully removed from guilds", false)
 }

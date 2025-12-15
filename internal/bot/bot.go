@@ -3,11 +3,13 @@ package bot
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"os"
 
 	"discord-bot-template/internal/bot/settings"
 	"discord-bot-template/internal/database"
+	"discord-bot-template/internal/shared/utils/logging"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -51,8 +53,12 @@ func New() (*Bot, error) {
 
 	// Initialize database tables
 	db := dbService.DB()
+	logger := logging.NewLogger(db, nil, "", "bot.startup")
 	if err := database.InitializeTables(db); err != nil {
+		logger.LogError("Database Initialization Failed", fmt.Sprintf("Failed to initialize tables: %v", err), "")
 		log.Printf("Warning: Failed to initialize database tables: %v", err)
+	} else {
+		logger.LogInfo("Database Initialized", "All database tables created successfully", false)
 	}
 
 	// Initialize settings manager
@@ -71,17 +77,27 @@ func New() (*Bot, error) {
 }
 
 func (bot *Bot) Start(ctx context.Context) error {
+	logger := logging.NewLogger(bot.db, bot.session, "", "bot.startup")
 	bot.registerHandlers()
 
 	if err := bot.session.Open(); err != nil {
+		logger.LogError("Bot Connection Failed", fmt.Sprintf("Failed to connect to Discord: %v", err), "")
 		return err
 	}
 
+	logger.LogInfo("Bot Started", "Bot successfully connected to Discord", false)
 	log.Println("Bot successfully connected to Discord")
 	return nil
 }
 
 func (bot *Bot) Stop() error {
+	logger := logging.NewLogger(bot.db, bot.session, "", "bot.shutdown")
 	bot.removeCommands()
-	return bot.session.Close()
+	err := bot.session.Close()
+	if err != nil {
+		logger.LogError("Bot Shutdown Error", fmt.Sprintf("Error during shutdown: %v", err), "")
+	} else {
+		logger.LogInfo("Bot Stopped", "Bot successfully disconnected from Discord", false)
+	}
+	return err
 }
