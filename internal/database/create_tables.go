@@ -83,6 +83,13 @@ func InitializeTables(db *sql.DB) error {
 	}
 	log.Println("Notification-Users table initialized successfully")
 
+	// Erstelle Logs-Tabelle
+	if err := tables.CreateLogsTable(db); err != nil {
+		log.Printf("Error creating logs table: %v", err)
+		return err
+	}
+	log.Println("Logs table initialized successfully")
+
 	log.Println("All database tables initialized successfully")
 	return nil
 }
