@@ -76,6 +76,13 @@ func InitializeTables(db *sql.DB) error {
 	}
 	log.Println("User-Leaves table initialized successfully")
 
+	// Erstelle Notification-Users-Tabelle
+	if err := tables.CreateNotificationUsersTable(db); err != nil {
+		log.Printf("Error creating notification_users table: %v", err)
+		return err
+	}
+	log.Println("Notification-Users table initialized successfully")
+
 	log.Println("All database tables initialized successfully")
 	return nil
 }

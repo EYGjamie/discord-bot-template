@@ -17,6 +17,11 @@ type Manager struct {
 	mu    sync.RWMutex
 }
 
+// GetDB gibt die Datenbank-Verbindung zurück
+func (m *Manager) GetDB() *sql.DB {
+	return m.db
+}
+
 // NewManager erstellt einen neuen Settings Manager
 func NewManager(db *sql.DB) *Manager {
 	m := &Manager{

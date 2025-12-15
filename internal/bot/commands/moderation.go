@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"discord-bot-template/internal/bot/settings"
+	"discord-bot-template/internal/database/tables"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -58,6 +59,57 @@ func SetupModerationCommand(s *discordgo.Session, guildID string) error {
 				Name:        "status",
 				Description: "Zeigt die aktuellen Moderations-Einstellungen",
 			},
+			{
+				Type:        discordgo.ApplicationCommandOptionSubCommand,
+				Name:        "add-notification-user",
+				Description: "Fügt einen User zur Notification-Liste hinzu",
+				Options: []*discordgo.ApplicationCommandOption{
+					{
+						Type:        discordgo.ApplicationCommandOptionUser,
+						Name:        "user",
+						Description: "Der User der Notifications erhalten soll",
+						Required:    true,
+					},
+					{
+						Type:        discordgo.ApplicationCommandOptionString,
+						Name:        "type",
+						Description: "Art der Notifications",
+						Required:    true,
+						Choices: []*discordgo.ApplicationCommandOptionChoice{
+							{
+								Name:  "Info",
+								Value: "info",
+							},
+							{
+								Name:  "Error",
+								Value: "error",
+							},
+							{
+								Name:  "Beide",
+								Value: "both",
+							},
+						},
+					},
+				},
+			},
+			{
+				Type:        discordgo.ApplicationCommandOptionSubCommand,
+				Name:        "remove-notification-user",
+				Description: "Entfernt einen User von der Notification-Liste",
+				Options: []*discordgo.ApplicationCommandOption{
+					{
+						Type:        discordgo.ApplicationCommandOptionUser,
+						Name:        "user",
+						Description: "Der User der entfernt werden soll",
+						Required:    true,
+					},
+				},
+			},
+			{
+				Type:        discordgo.ApplicationCommandOptionSubCommand,
+				Name:        "list-notification-users",
+				Description: "Zeigt alle User die Notifications erhalten",
+			},
 		},
 	}
 
@@ -99,6 +151,12 @@ func HandleModerationCommand(s *discordgo.Session, i *discordgo.InteractionCreat
 		handleToggleDeletes(s, i, settingsManager, options[0].Options)
 	case "status":
 		handleStatus(s, i, settingsManager)
+	case "add-notification-user":
+		handleAddNotificationUser(s, i, settingsManager, options[0].Options)
+	case "remove-notification-user":
+		handleRemoveNotificationUser(s, i, settingsManager, options[0].Options)
+	case "list-notification-users":
+		handleListNotificationUsers(s, i, settingsManager)
 	}
 }
 
@@ -238,6 +296,119 @@ func formatStatus(enabled bool) string {
 		return "✅ Aktiviert"
 	}
 	return "❌ Deaktiviert"
+}
+
+func handleAddNotificationUser(s *discordgo.Session, i *discordgo.InteractionCreate, settingsManager *settings.Manager, options []*discordgo.ApplicationCommandInteractionDataOption) {
+	user := options[0].UserValue(s)
+	notificationType := tables.NotificationType(options[1].StringValue())
+
+	// Füge User zur Notification-Liste hinzu
+	_, err := tables.AddNotificationUser(settingsManager.GetDB(), user.ID, i.GuildID, notificationType)
+	if err != nil {
+		respondError(s, i, fmt.Sprintf("Fehler beim Hinzufügen des Users: %v", err))
+		return
+	}
+
+	var typeText string
+	switch notificationType {
+	case tables.NotificationTypeInfo:
+		typeText = "Info"
+	case tables.NotificationTypeError:
+		typeText = "Error"
+	default:
+		typeText = "Info und Error"
+	}
+
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Embeds: []*discordgo.MessageEmbed{
+				{
+					Title:       "✅ User hinzugefügt",
+					Description: fmt.Sprintf("%s erhält ab jetzt **%s**-Notifications per DM.", user.Mention(), typeText),
+					Color:       0x2ecc71,
+				},
+			},
+			Flags: discordgo.MessageFlagsEphemeral,
+		},
+	})
+}
+
+func handleRemoveNotificationUser(s *discordgo.Session, i *discordgo.InteractionCreate, settingsManager *settings.Manager, options []*discordgo.ApplicationCommandInteractionDataOption) {
+	user := options[0].UserValue(s)
+
+	err := tables.RemoveNotificationUser(settingsManager.GetDB(), user.ID, i.GuildID)
+	if err != nil {
+		respondError(s, i, fmt.Sprintf("Fehler beim Entfernen des Users: %v", err))
+		return
+	}
+
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Embeds: []*discordgo.MessageEmbed{
+				{
+					Title:       "✅ User entfernt",
+					Description: fmt.Sprintf("%s erhält keine Notifications mehr.", user.Mention()),
+					Color:       0x2ecc71,
+				},
+			},
+			Flags: discordgo.MessageFlagsEphemeral,
+		},
+	})
+}
+
+func handleListNotificationUsers(s *discordgo.Session, i *discordgo.InteractionCreate, settingsManager *settings.Manager) {
+	users, err := tables.GetNotificationUsers(settingsManager.GetDB(), i.GuildID, "")
+	if err != nil {
+		respondError(s, i, fmt.Sprintf("Fehler beim Abrufen der User: %v", err))
+		return
+	}
+
+	if len(users) == 0 {
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Embeds: []*discordgo.MessageEmbed{
+					{
+						Title:       "📋 Notification-User",
+						Description: "Es sind keine User für Notifications registriert.",
+						Color:       0x95a5a6,
+					},
+				},
+				Flags: discordgo.MessageFlagsEphemeral,
+			},
+		})
+		return
+	}
+
+	description := ""
+	for _, user := range users {
+		var typeText string
+		switch user.NotificationType {
+		case tables.NotificationTypeInfo:
+			typeText = "Info"
+		case tables.NotificationTypeError:
+			typeText = "Error"
+		default:
+			typeText = "Info & Error"
+		}
+		description += fmt.Sprintf("<@%s> - **%s**\n", user.UserID, typeText)
+	}
+
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Embeds: []*discordgo.MessageEmbed{
+				{
+					Title:       "📋 Notification-User",
+					Description: description,
+					Color:       0x3498db,
+				},
+			},
+			Flags: discordgo.MessageFlagsEphemeral,
+		},
+	})
 }
 
 func respondError(s *discordgo.Session, i *discordgo.InteractionCreate, message string) {

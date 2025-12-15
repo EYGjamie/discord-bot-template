@@ -82,5 +82,6 @@ func (bot *Bot) Start(ctx context.Context) error {
 }
 
 func (bot *Bot) Stop() error {
+	bot.removeCommands()
 	return bot.session.Close()
 }
