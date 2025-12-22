@@ -90,6 +90,13 @@ func InitializeTables(db *sql.DB) error {
 	}
 	log.Println("Logs table initialized successfully")
 
+	// Erstelle Role-Audit-Logs-Tabelle
+	if err := tables.CreateRoleAuditLogsTable(db); err != nil {
+		log.Printf("Error creating role_audit_logs table: %v", err)
+		return err
+	}
+	log.Println("Role-Audit-Logs table initialized successfully")
+
 	log.Println("All database tables initialized successfully")
 	return nil
 }
