@@ -65,6 +65,13 @@ func (bot *Bot) registerCommands() {
 			log.Printf("✓ Command /setmodrole registriert für Guild: %s (%s)", guild.Name, guild.ID)
 		}
 
+		if err := commands.SetupCoinflipCommand(bot.session, guild.ID); err != nil {
+			log.Printf("Fehler beim Registrieren des /coinflip Commands für Guild %s: %v", guild.ID, err)
+			logger.LogError("Command Registration Failed", fmt.Sprintf("Failed to register /coinflip for guild %s: %v", guild.Name, err), "")
+		} else {
+			log.Printf("✓ Command /coinflip registriert für Guild: %s (%s)", guild.Name, guild.ID)
+		}
+
 		successCount++
 	}
 

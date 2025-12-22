@@ -36,5 +36,7 @@ func (bot *Bot) onInteractionCreate(s *discordgo.Session, i *discordgo.Interacti
 		commands.HandleUserInfoCommand(s, i, bot.db)
 	case "setmodrole":
 		commands.HandleSetModRoleCommand(s, i, bot.db)
+	case "coinflip":
+		commands.HandleCoinflipCommand(s, i, bot.db)
 	}
 }
