@@ -4,7 +4,6 @@
 - Giveaways
 - Channel Purger
 - Create Voice
-- Coinflip [x]
 - Minigames
     - quiz
     - schere stein papier
