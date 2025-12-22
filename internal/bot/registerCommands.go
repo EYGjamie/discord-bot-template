@@ -35,8 +35,37 @@ func (bot *Bot) registerCommands() {
 			logger.LogError("Command Registration Failed", fmt.Sprintf("Failed to register /moderation for guild %s: %v", guild.Name, err), "")
 		} else {
 			log.Printf("✓ Command /moderation registriert für Guild: %s (%s)", guild.Name, guild.ID)
-			successCount++
 		}
+
+		if err := commands.SetupWarnCommand(bot.session, guild.ID); err != nil {
+			log.Printf("Fehler beim Registrieren des /warn Commands für Guild %s: %v", guild.ID, err)
+			logger.LogError("Command Registration Failed", fmt.Sprintf("Failed to register /warn for guild %s: %v", guild.Name, err), "")
+		} else {
+			log.Printf("✓ Command /warn registriert für Guild: %s (%s)", guild.Name, guild.ID)
+		}
+
+		if err := commands.SetupNoteCommand(bot.session, guild.ID); err != nil {
+			log.Printf("Fehler beim Registrieren des /note Commands für Guild %s: %v", guild.ID, err)
+			logger.LogError("Command Registration Failed", fmt.Sprintf("Failed to register /note for guild %s: %v", guild.Name, err), "")
+		} else {
+			log.Printf("✓ Command /note registriert für Guild: %s (%s)", guild.Name, guild.ID)
+		}
+
+		if err := commands.SetupUserInfoCommand(bot.session, guild.ID); err != nil {
+			log.Printf("Fehler beim Registrieren des /userinfo Commands für Guild %s: %v", guild.ID, err)
+			logger.LogError("Command Registration Failed", fmt.Sprintf("Failed to register /userinfo for guild %s: %v", guild.Name, err), "")
+		} else {
+			log.Printf("✓ Command /userinfo registriert für Guild: %s (%s)", guild.Name, guild.ID)
+		}
+
+		if err := commands.SetupSetModRoleCommand(bot.session, guild.ID); err != nil {
+			log.Printf("Fehler beim Registrieren des /setmodrole Commands für Guild %s: %v", guild.ID, err)
+			logger.LogError("Command Registration Failed", fmt.Sprintf("Failed to register /setmodrole for guild %s: %v", guild.Name, err), "")
+		} else {
+			log.Printf("✓ Command /setmodrole registriert für Guild: %s (%s)", guild.Name, guild.ID)
+		}
+
+		successCount++
 	}
 
 	log.Println("Command-Registrierung abgeschlossen")

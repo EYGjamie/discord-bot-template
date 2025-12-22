@@ -97,6 +97,13 @@ func InitializeTables(db *sql.DB) error {
 	}
 	log.Println("Role-Audit-Logs table initialized successfully")
 
+	// Erstelle User-Moderation-Logs-Tabelle
+	if err := tables.CreateUserModerationLogsTable(db); err != nil {
+		log.Printf("Error creating user_moderation_logs table: %v", err)
+		return err
+	}
+	log.Println("User-Moderation-Logs table initialized successfully")
+
 	log.Println("All database tables initialized successfully")
 	return nil
 }

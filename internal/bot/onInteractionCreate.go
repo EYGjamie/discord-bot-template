@@ -28,5 +28,13 @@ func (bot *Bot) onInteractionCreate(s *discordgo.Session, i *discordgo.Interacti
 	switch cmdName {
 	case "moderation":
 		commands.HandleModerationCommand(s, i, bot.settings)
+	case "warn":
+		commands.HandleWarnCommand(s, i, bot.db)
+	case "note":
+		commands.HandleNoteCommand(s, i, bot.db)
+	case "userinfo":
+		commands.HandleUserInfoCommand(s, i, bot.db)
+	case "setmodrole":
+		commands.HandleSetModRoleCommand(s, i, bot.db)
 	}
 }

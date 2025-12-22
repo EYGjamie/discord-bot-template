@@ -5,6 +5,7 @@ import (
 
 	"discord-bot-template/internal/bot/settings"
 	"discord-bot-template/internal/database/tables"
+	cmdutils "discord-bot-template/internal/shared/utils/commands"
 	"discord-bot-template/internal/shared/utils/logging"
 
 	"github.com/bwmarrin/discordgo"
@@ -125,7 +126,7 @@ func HandleModerationCommand(s *discordgo.Session, i *discordgo.InteractionCreat
 	// Prüfe auf Admin-Rechte
 	member := i.Member
 	if member == nil {
-		respondError(s, i, "Dieser Command kann nur auf einem Server ausgeführt werden")
+		cmdutils.RespondError(s, i, "Dieser Command kann nur auf einem Server ausgeführt werden")
 		return
 	}
 
@@ -139,7 +140,7 @@ func HandleModerationCommand(s *discordgo.Session, i *discordgo.InteractionCreat
 	}
 
 	if !hasAdmin {
-		respondError(s, i, "Du benötigst Administrator-Rechte für diesen Command")
+		cmdutils.RespondError(s, i, "Du benötigst Administrator-Rechte für diesen Command")
 		return
 	}
 
@@ -168,7 +169,7 @@ func handleSetChannel(s *discordgo.Session, i *discordgo.InteractionCreate, sett
 	err := settingsManager.SetString("moderation_channel_id", channelID, true)
 	if err != nil {
 		logger.LogError("Moderation Channel Set Failed", fmt.Sprintf("Failed to set moderation channel: %v", err), "")
-		respondError(s, i, fmt.Sprintf("Fehler beim Speichern: %v", err))
+		cmdutils.RespondError(s, i, fmt.Sprintf("Fehler beim Speichern: %v", err))
 		return
 	}
 	logger.LogInfo("Moderation Channel Updated", fmt.Sprintf("Channel set to %s", channelID), false)
@@ -198,7 +199,7 @@ func handleToggleEdits(s *discordgo.Session, i *discordgo.InteractionCreate, set
 		err = settingsManager.SetBool("log_message_edits", true, enabled)
 		if err != nil {
 			logger.LogError("Toggle Edits Failed", fmt.Sprintf("Failed to toggle message edits logging: %v", err), "")
-			respondError(s, i, fmt.Sprintf("Fehler beim Speichern: %v", err))
+			cmdutils.RespondError(s, i, fmt.Sprintf("Fehler beim Speichern: %v", err))
 			return
 		}
 	}
@@ -234,7 +235,7 @@ func handleToggleDeletes(s *discordgo.Session, i *discordgo.InteractionCreate, s
 		err = settingsManager.SetBool("log_message_deletes", true, enabled)
 		if err != nil {
 			logger.LogError("Toggle Deletes Failed", fmt.Sprintf("Failed to toggle message deletes logging: %v", err), "")
-			respondError(s, i, fmt.Sprintf("Fehler beim Speichern: %v", err))
+			cmdutils.RespondError(s, i, fmt.Sprintf("Fehler beim Speichern: %v", err))
 			return
 		}
 	}
@@ -315,7 +316,7 @@ func handleAddNotificationUser(s *discordgo.Session, i *discordgo.InteractionCre
 	// Füge User zur Notification-Liste hinzu
 	_, err := tables.AddNotificationUser(settingsManager.GetDB(), user.ID, i.GuildID, notificationType)
 	if err != nil {
-		respondError(s, i, fmt.Sprintf("Fehler beim Hinzufügen des Users: %v", err))
+		cmdutils.RespondError(s, i, fmt.Sprintf("Fehler beim Hinzufügen des Users: %v", err))
 		return
 	}
 
@@ -349,7 +350,7 @@ func handleRemoveNotificationUser(s *discordgo.Session, i *discordgo.Interaction
 
 	err := tables.RemoveNotificationUser(settingsManager.GetDB(), user.ID, i.GuildID)
 	if err != nil {
-		respondError(s, i, fmt.Sprintf("Fehler beim Entfernen des Users: %v", err))
+		cmdutils.RespondError(s, i, fmt.Sprintf("Fehler beim Entfernen des Users: %v", err))
 		return
 	}
 
@@ -371,7 +372,7 @@ func handleRemoveNotificationUser(s *discordgo.Session, i *discordgo.Interaction
 func handleListNotificationUsers(s *discordgo.Session, i *discordgo.InteractionCreate, settingsManager *settings.Manager) {
 	users, err := tables.GetNotificationUsers(settingsManager.GetDB(), i.GuildID, "")
 	if err != nil {
-		respondError(s, i, fmt.Sprintf("Fehler beim Abrufen der User: %v", err))
+		cmdutils.RespondError(s, i, fmt.Sprintf("Fehler beim Abrufen der User: %v", err))
 		return
 	}
 
@@ -414,22 +415,6 @@ func handleListNotificationUsers(s *discordgo.Session, i *discordgo.InteractionC
 					Title:       "📋 Notification-User",
 					Description: description,
 					Color:       0x3498db,
-				},
-			},
-			Flags: discordgo.MessageFlagsEphemeral,
-		},
-	})
-}
-
-func respondError(s *discordgo.Session, i *discordgo.InteractionCreate, message string) {
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Embeds: []*discordgo.MessageEmbed{
-				{
-					Title:       "❌ Fehler",
-					Description: message,
-					Color:       0xFF0000,
 				},
 			},
 			Flags: discordgo.MessageFlagsEphemeral,

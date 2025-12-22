@@ -211,3 +211,40 @@ func GetUserVoiceStatistics(db *sql.DB, userID string) (totalTime, mutedTime, de
 	err = db.QueryRowContext(ctx, query, userID).Scan(&totalTime, &mutedTime, &deafenTime, &streamTime)
 	return
 }
+
+// GetTotalVoiceTimeByUser gibt die gesamte Voice Zeit eines Users zurück
+func GetTotalVoiceTimeByUser(db *sql.DB, userID string) (int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	query := `
+		SELECT COALESCE(SUM(total_duration), 0)
+		FROM user_voice_logs
+		WHERE user_id = $1 AND left_at IS NOT NULL
+	`
+
+	var total int64
+	err := db.QueryRowContext(ctx, query, userID).Scan(&total)
+	return total, err
+}
+
+// GetMostUsedVoiceChannel gibt den am meisten genutzten Voice Channel eines Users zurück
+func GetMostUsedVoiceChannel(db *sql.DB, userID string) (channelID string, totalTime int64, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	query := `
+		SELECT channel_id, SUM(total_duration) as total_time
+		FROM user_voice_logs
+		WHERE user_id = $1 AND left_at IS NOT NULL
+		GROUP BY channel_id
+		ORDER BY total_time DESC
+		LIMIT 1
+	`
+
+	err = db.QueryRowContext(ctx, query, userID).Scan(&channelID, &totalTime)
+	if err == sql.ErrNoRows {
+		return "N/A", 0, nil
+	}
+	return
+}

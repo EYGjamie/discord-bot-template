@@ -47,6 +47,22 @@ func InsertUserMessageLog(db *sql.DB, authorID, channelID string) error {
 	return err
 }
 
+// CountUserMessages zählt alle Nachrichten eines Users
+func CountUserMessages(db *sql.DB, userID string) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	query := `
+		SELECT COUNT(*)
+		FROM user_messages_logs
+		WHERE author_id = $1
+	`
+
+	var count int
+	err := db.QueryRowContext(ctx, query, userID).Scan(&count)
+	return count, err
+}
+
 // GetUserMessageLogsByAuthor ruft alle Nachrichten-Logs für einen bestimmten Autor ab
 func GetUserMessageLogsByAuthor(db *sql.DB, authorID string) ([]UserMessageLog, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
