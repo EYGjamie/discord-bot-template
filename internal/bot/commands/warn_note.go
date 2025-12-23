@@ -220,6 +220,7 @@ func HandleNoteCommand(s *discordgo.Session, i *discordgo.InteractionCreate, db 
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Embeds: []*discordgo.MessageEmbed{embed},
+			Flags: discordgo.MessageFlagsEphemeral,
 		},
 	})
 }

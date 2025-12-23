@@ -223,35 +223,7 @@ func HandleUserInfoCommand(s *discordgo.Session, i *discordgo.InteractionCreate,
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Embeds: []*discordgo.MessageEmbed{embed},
+			Flags: discordgo.MessageFlagsEphemeral,
 		},
 	})
-}
-
-// formatDuration formatiert Sekunden in ein lesbares Format
-func formatDuration(seconds int64) string {
-	if seconds == 0 {
-		return "0m"
-	}
-
-	hours := seconds / 3600
-	minutes := (seconds % 3600) / 60
-
-	if hours > 0 {
-		return fmt.Sprintf("%dh %dm", hours, minutes)
-	}
-	return fmt.Sprintf("%dm", minutes)
-}
-
-// formatDiscordTimestamp extrahiert das Erstellungsdatum aus einer Discord Snowflake ID
-func formatDiscordTimestamp(snowflake string) string {
-	// Discord Snowflake Epoch: 1420070400000 (01.01.2015)
-	// Snowflake format: (timestamp << 22) | (worker_id << 17) | (process_id << 12) | increment
-
-	var id int64
-	fmt.Sscanf(snowflake, "%d", &id)
-
-	timestamp := (id >> 22) + 1420070400000
-	t := time.Unix(timestamp/1000, 0)
-
-	return t.Format("02.01.2006")
 }
