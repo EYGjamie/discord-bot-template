@@ -1,9 +1,6 @@
-
 - Social News
 - Stats Api
 - Giveaways
-- Channel Purger
-
 
 - Minigames
     - quiz
