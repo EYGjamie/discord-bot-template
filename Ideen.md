@@ -3,7 +3,6 @@
 - Stats Api
 - Giveaways
 - Channel Purger
-- Create Voice
 - Minigames
     - quiz
     - schere stein papier
