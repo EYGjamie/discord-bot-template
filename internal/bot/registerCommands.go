@@ -79,6 +79,20 @@ func (bot *Bot) registerCommands() {
 			log.Printf("✓ Command /setupcreatevoice registriert für Guild: %s (%s)", guild.Name, guild.ID)
 		}
 
+		if err := commands.SetupPurgeCommand(bot.session, guild.ID); err != nil {
+			log.Printf("Fehler beim Registrieren des /purge Commands für Guild %s: %v", guild.ID, err)
+			logger.LogError("Command Registration Failed", fmt.Sprintf("Failed to register /purge for guild %s: %v", guild.Name, err), "")
+		} else {
+			log.Printf("✓ Command /purge registriert für Guild: %s (%s)", guild.Name, guild.ID)
+		}
+
+		if err := commands.SetupPurgeScheduleCommand(bot.session, guild.ID); err != nil {
+			log.Printf("Fehler beim Registrieren des /purge-schedule Commands für Guild %s: %v", guild.ID, err)
+			logger.LogError("Command Registration Failed", fmt.Sprintf("Failed to register /purge-schedule for guild %s: %v", guild.Name, err), "")
+		} else {
+			log.Printf("✓ Command /purge-schedule registriert für Guild: %s (%s)", guild.Name, guild.ID)
+		}
+
 		successCount++
 	}
 

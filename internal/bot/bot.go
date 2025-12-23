@@ -9,17 +9,19 @@ import (
 
 	"discord-bot-template/internal/bot/settings"
 	"discord-bot-template/internal/database"
+	"discord-bot-template/internal/shared/services"
 	"discord-bot-template/internal/shared/utils/logging"
 
 	"github.com/bwmarrin/discordgo"
 )
 
 type Bot struct {
-	session     *discordgo.Session
-	token       string
-	db          *sql.DB
-	settings    *settings.Manager
-	inviteCache *InviteCache
+	session        *discordgo.Session
+	token          string
+	db             *sql.DB
+	settings       *settings.Manager
+	inviteCache    *InviteCache
+	purgeScheduler *services.PurgeScheduler
 }
 
 func New() (*Bot, error) {
@@ -68,11 +70,12 @@ func New() (*Bot, error) {
 	inviteCache := NewInviteCache()
 
 	return &Bot{
-		session:     session,
-		token:       token,
-		db:          db,
-		settings:    settingsManager,
-		inviteCache: inviteCache,
+		session:        session,
+		token:          token,
+		db:             db,
+		settings:       settingsManager,
+		inviteCache:    inviteCache,
+		purgeScheduler: nil, // Wird nach dem Login initialisiert
 	}, nil
 }
 
@@ -87,11 +90,24 @@ func (bot *Bot) Start(ctx context.Context) error {
 
 	logger.LogInfo("Bot Started", "Bot successfully connected to Discord", false)
 	log.Println("Bot successfully connected to Discord")
+
+	// Initialize and start purge scheduler
+	bot.purgeScheduler = services.NewPurgeScheduler(bot.session, bot.db)
+	bot.purgeScheduler.Start()
+	log.Println("Purge Scheduler started")
+
 	return nil
 }
 
 func (bot *Bot) Stop() error {
 	logger := logging.NewLogger(bot.db, bot.session, "", "bot.shutdown")
+
+	// Stop purge scheduler
+	if bot.purgeScheduler != nil {
+		bot.purgeScheduler.Stop()
+		log.Println("Purge Scheduler stopped")
+	}
+
 	bot.removeCommands()
 	err := bot.session.Close()
 	if err != nil {

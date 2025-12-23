@@ -118,6 +118,13 @@ func InitializeTables(db *sql.DB) error {
 	}
 	log.Println("Temporary-Voice-Channels table initialized successfully")
 
+	// Erstelle Channel-Purge-Settings-Tabelle
+	if err := tables.CreateChannelPurgeSettingsTable(db); err != nil {
+		log.Printf("Error creating channel_purge_settings table: %v", err)
+		return err
+	}
+	log.Println("Channel-Purge-Settings table initialized successfully")
+
 	log.Println("All database tables initialized successfully")
 	return nil
 }

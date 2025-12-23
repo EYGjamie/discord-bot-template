@@ -39,6 +39,10 @@ func (bot *Bot) onInteractionCreate(s *discordgo.Session, i *discordgo.Interacti
 			commands.HandleCoinflipCommand(s, i, bot.db)
 		case "setupcreatevoice":
 			commands.HandleSetupCreateVoiceCommand(s, i, bot.db)
+		case "purge":
+			commands.HandlePurgeCommand(s, i, bot.db)
+		case "purge-schedule":
+			commands.HandlePurgeScheduleCommand(s, i, bot.db)
 		}
 	case discordgo.InteractionMessageComponent:
 		// Handle Button/Select Menu Interactions
