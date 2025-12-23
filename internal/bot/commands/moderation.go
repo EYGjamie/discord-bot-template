@@ -193,15 +193,12 @@ func handleToggleEdits(s *discordgo.Session, i *discordgo.InteractionCreate, set
 	logger := logging.NewLogger(settingsManager.GetDB(), s, i.GuildID, "bot.commands.moderation")
 	enabled := options[0].BoolValue()
 
-	err := settingsManager.SetEnabled("log_message_edits", enabled)
+	// Speichere den Boolean-Wert direkt
+	err := settingsManager.SetBool("log_message_edits", enabled, true)
 	if err != nil {
-		// Falls Setting nicht existiert, erstelle es
-		err = settingsManager.SetBool("log_message_edits", true, enabled)
-		if err != nil {
-			logger.LogError("Toggle Edits Failed", fmt.Sprintf("Failed to toggle message edits logging: %v", err), "")
-			cmdutils.RespondError(s, i, fmt.Sprintf("Fehler beim Speichern: %v", err))
-			return
-		}
+		logger.LogError("Toggle Edits Failed", fmt.Sprintf("Failed to toggle message edits logging: %v", err), "")
+		cmdutils.RespondError(s, i, fmt.Sprintf("Fehler beim Speichern: %v", err))
+		return
 	}
 	logger.LogInfo("Message Edits Logging Toggled", fmt.Sprintf("Message edits logging set to: %v", enabled), false)
 
@@ -229,15 +226,12 @@ func handleToggleDeletes(s *discordgo.Session, i *discordgo.InteractionCreate, s
 	logger := logging.NewLogger(settingsManager.GetDB(), s, i.GuildID, "bot.commands.moderation")
 	enabled := options[0].BoolValue()
 
-	err := settingsManager.SetEnabled("log_message_deletes", enabled)
+	// Speichere den Boolean-Wert direkt
+	err := settingsManager.SetBool("log_message_deletes", enabled, true)
 	if err != nil {
-		// Falls Setting nicht existiert, erstelle es
-		err = settingsManager.SetBool("log_message_deletes", true, enabled)
-		if err != nil {
-			logger.LogError("Toggle Deletes Failed", fmt.Sprintf("Failed to toggle message deletes logging: %v", err), "")
-			cmdutils.RespondError(s, i, fmt.Sprintf("Fehler beim Speichern: %v", err))
-			return
-		}
+		logger.LogError("Toggle Deletes Failed", fmt.Sprintf("Failed to toggle message deletes logging: %v", err), "")
+		cmdutils.RespondError(s, i, fmt.Sprintf("Fehler beim Speichern: %v", err))
+		return
 	}
 	logger.LogInfo("Message Deletes Logging Toggled", fmt.Sprintf("Message deletes logging set to: %v", enabled), false)
 
@@ -263,8 +257,8 @@ func handleToggleDeletes(s *discordgo.Session, i *discordgo.InteractionCreate, s
 
 func handleStatus(s *discordgo.Session, i *discordgo.InteractionCreate, settingsManager *settings.Manager) {
 	channelID := settingsManager.GetString("moderation_channel_id", "Nicht gesetzt")
-	editsEnabled := settingsManager.IsEnabled("log_message_edits")
-	deletesEnabled := settingsManager.IsEnabled("log_message_deletes")
+	editsEnabled := settingsManager.GetBool("log_message_edits", false)
+	deletesEnabled := settingsManager.GetBool("log_message_deletes", false)
 
 	channelDisplay := channelID
 	if channelID != "Nicht gesetzt" {

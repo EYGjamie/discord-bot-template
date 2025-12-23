@@ -17,17 +17,22 @@ func HandleCreateVoiceJoin(s *discordgo.Session, db *sql.DB, voiceState *discord
 		return nil
 	}
 
+	logger := logging.NewLogger(db, s, voiceState.GuildID, "voice.create_voice")
+	logger.LogInfo("Voice Join Event", fmt.Sprintf("User %s joined channel %s", voiceState.UserID, voiceState.ChannelID), false)
+
 	// Prüfe ob der Channel ein Create-Voice-Channel ist
 	setting, err := tables.GetCreateVoiceSettingByChannelID(db, voiceState.ChannelID)
 	if err != nil {
+		logger.LogError("Fehler beim Abrufen der Create-Voice-Settings", err.Error(), "")
 		return err
 	}
 
 	if setting == nil {
+		logger.LogInfo("Kein Create-Voice-Channel", fmt.Sprintf("Channel %s ist kein Create-Voice-Channel", voiceState.ChannelID), false)
 		return nil // Kein Create-Voice-Channel
 	}
 
-	logger := logging.NewLogger(db, s, voiceState.GuildID, "voice.create_voice")
+	logger.LogInfo("Create-Voice-Channel erkannt", fmt.Sprintf("Erstelle temporären Channel für User %s", voiceState.UserID), false)
 
 	// Hole den originalen Channel um die Kategorie und Position zu bekommen
 	originalChannel, err := s.Channel(voiceState.ChannelID)

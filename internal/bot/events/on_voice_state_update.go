@@ -19,10 +19,19 @@ func OnVoiceStateUpdate(bot_session *discordgo.Session, voiceState *discordgo.Vo
 	voice.LogVoiceStateUpdate(db, voiceState)
 
 	// Handle Create Voice Channel Logic
-	// Wenn User einen Channel betritt
-	if voiceState.ChannelID != "" && voiceState.BeforeUpdate != nil && voiceState.BeforeUpdate.ChannelID != voiceState.ChannelID {
-		// Prüfe ob es ein Create-Voice-Channel ist
-		voice.HandleCreateVoiceJoin(bot_session, db, voiceState)
+	// Wenn User einen Channel betritt (ChannelID ist gesetzt)
+	if voiceState.ChannelID != "" {
+		// Prüfe ob der User von einem anderen Channel kommt oder neu joint
+		oldChannelID := ""
+		if voiceState.BeforeUpdate != nil {
+			oldChannelID = voiceState.BeforeUpdate.ChannelID
+		}
+
+		// Nur wenn User den Channel gewechselt hat oder neu beigetreten ist
+		if oldChannelID != voiceState.ChannelID {
+			// Prüfe ob es ein Create-Voice-Channel ist
+			voice.HandleCreateVoiceJoin(bot_session, db, voiceState)
+		}
 	}
 
 	// Wenn User einen Channel verlässt

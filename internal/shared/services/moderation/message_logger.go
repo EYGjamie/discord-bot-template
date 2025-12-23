@@ -12,7 +12,7 @@ import (
 // LogMessageEdit sendet ein Embed für editierte Nachrichten in den Moderations-Kanal
 func LogMessageEdit(s *discordgo.Session, settings *settings.Manager, beforeMsg, afterMsg *discordgo.Message) {
 	// Prüfe ob Message-Edit-Logging aktiviert ist
-	if !settings.IsEnabled("log_message_edits") {
+	if !settings.GetBool("log_message_edits", false) {
 		return
 	}
 
@@ -84,7 +84,7 @@ func LogMessageEdit(s *discordgo.Session, settings *settings.Manager, beforeMsg,
 // LogMessageDelete sendet ein Embed für gelöschte Nachrichten in den Moderations-Kanal
 func LogMessageDelete(s *discordgo.Session, settings *settings.Manager, msg *discordgo.Message) {
 	// Prüfe ob Message-Delete-Logging aktiviert ist
-	if !settings.IsEnabled("log_message_deletes") {
+	if !settings.GetBool("log_message_deletes", false) {
 		return
 	}
 
