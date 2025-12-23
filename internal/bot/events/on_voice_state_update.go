@@ -17,4 +17,18 @@ func OnVoiceStateUpdate(bot_session *discordgo.Session, voiceState *discordgo.Vo
 
 	// Logge den Voice State Change in der Datenbank
 	voice.LogVoiceStateUpdate(db, voiceState)
+
+	// Handle Create Voice Channel Logic
+	// Wenn User einen Channel betritt
+	if voiceState.ChannelID != "" && voiceState.BeforeUpdate != nil && voiceState.BeforeUpdate.ChannelID != voiceState.ChannelID {
+		// Prüfe ob es ein Create-Voice-Channel ist
+		voice.HandleCreateVoiceJoin(bot_session, db, voiceState)
+	}
+
+	// Wenn User einen Channel verlässt
+	if voiceState.BeforeUpdate != nil && voiceState.BeforeUpdate.ChannelID != "" {
+		oldChannelID := voiceState.BeforeUpdate.ChannelID
+		// Prüfe ob der alte Channel ein temporärer Channel ist und leer ist
+		voice.HandleTemporaryVoiceLeave(bot_session, db, oldChannelID, voiceState.GuildID)
+	}
 }

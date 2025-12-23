@@ -104,6 +104,20 @@ func InitializeTables(db *sql.DB) error {
 	}
 	log.Println("User-Moderation-Logs table initialized successfully")
 
+	// Erstelle Create-Voice-Settings-Tabelle
+	if err := tables.CreateCreateVoiceSettingsTable(db); err != nil {
+		log.Printf("Error creating create_voice_settings table: %v", err)
+		return err
+	}
+	log.Println("Create-Voice-Settings table initialized successfully")
+
+	// Erstelle Temporary-Voice-Channels-Tabelle
+	if err := tables.CreateTemporaryVoiceChannelsTable(db); err != nil {
+		log.Printf("Error creating temporary_voice_channels table: %v", err)
+		return err
+	}
+	log.Println("Temporary-Voice-Channels table initialized successfully")
+
 	log.Println("All database tables initialized successfully")
 	return nil
 }
