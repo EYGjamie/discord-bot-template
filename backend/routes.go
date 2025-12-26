@@ -1,6 +1,7 @@
 package server
 
 import (
+	"discord-bot-template/backend/handlers"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -13,11 +14,20 @@ import (
 func (s *Server) RegisterRoutes() http.Handler {
 	mux := http.NewServeMux()
 
-	// Register routes
-	mux.HandleFunc("/", s.HelloWorldHandler)
+	// Initialize auth handler
+	authHandler := handlers.NewAuthHandler()
 
+	// Auth routes (public)
+	mux.HandleFunc("GET /api/auth/discord/login", authHandler.DiscordLogin)
+	mux.HandleFunc("GET /api/auth/discord/callback", authHandler.DiscordCallback)
+	mux.HandleFunc("POST /api/auth/logout", authHandler.Logout)
+	mux.HandleFunc("GET /api/me", authHandler.GetCurrentUser)
+
+	// Health check
 	mux.HandleFunc("/health", s.healthHandler)
 
+	// Original routes for testing
+	mux.HandleFunc("/", s.HelloWorldHandler)
 	mux.HandleFunc("/websocket", s.websocketHandler)
 
 	// Wrap the mux with CORS middleware
@@ -30,7 +40,7 @@ func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Origin", "*") // Replace "*" with specific origins if needed
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
 		w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-CSRF-Token")
-		w.Header().Set("Access-Control-Allow-Credentials", "false") // Set to "true" if credentials are required
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
 
 		// Handle preflight OPTIONS requests
 		if r.Method == http.MethodOptions {

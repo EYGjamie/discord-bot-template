@@ -1,59 +1,53 @@
-import { useState } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './hooks/useAuth';
+import LoginPage from './pages/LoginPage';
+import AuthCallbackPage from './pages/AuthCallbackPage';
+import DashboardPage from './pages/DashboardPage';
+import DashboardLayout from './components/layout/DashboardLayout';
 
-function App() {
-  const [count, setCount] = useState(0)
-  const [message, setMessage] = useState<string>('')
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, loading } = useAuth();
 
-  const fetchData = () => {
-    fetch(`http://localhost:${import.meta.env.VITE_PORT}/`)
-      .then(response => response.text())
-      .then(data => setMessage(data))
-      .catch(error => console.error('Error fetching data:', error))
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0f1419] flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md mx-auto space-y-8">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Welcome to Vite + React
-          </h1>
-          <p className="text-gray-600">
-            Get started by editing <code className="text-sm bg-gray-100 p-1 rounded">src/App.tsx</code>
-          </p>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <div className="text-center space-y-4">
-            <button
-              onClick={() => setCount((count) => count + 1)}
-              className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition-colors"
-            >
-              Count is {count}
-            </button>
-            
-            <button
-              onClick={fetchData}
-              className="block w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md transition-colors"
-            >
-              Fetch from Server
-            </button>
-
-            {message && (
-              <div className="mt-4 p-4 bg-gray-50 rounded-md">
-                <p className="text-gray-700">Server Response:</p>
-                <p className="text-gray-900 font-medium">{message}</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="text-center text-gray-500 text-sm">
-          Built with Vite, React, and Tailwind CSS
-        </div>
-      </div>
-    </div>
-  )
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
 }
 
-export default App
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <DashboardPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/" element={<Navigate to="/dashboard" />} />
+        
+        {/* Placeholder routes */}
+        <Route path="/members" element={<ProtectedRoute><DashboardLayout><div className="p-6 text-white">Members Page</div></DashboardLayout></ProtectedRoute>} />
+        <Route path="/events" element={<ProtectedRoute><DashboardLayout><div className="p-6 text-white">Events Page</div></DashboardLayout></ProtectedRoute>} />
+        <Route path="/tasks" element={<ProtectedRoute><DashboardLayout><div className="p-6 text-white">Tasks Page</div></DashboardLayout></ProtectedRoute>} />
+        <Route path="/matches" element={<ProtectedRoute><DashboardLayout><div className="p-6 text-white">Matches Page</div></DashboardLayout></ProtectedRoute>} />
+        <Route path="/discord" element={<ProtectedRoute><DashboardLayout><div className="p-6 text-white">Discord Page</div></DashboardLayout></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute><DashboardLayout><div className="p-6 text-white">Notifications Page</div></DashboardLayout></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><DashboardLayout><div className="p-6 text-white">Settings Page</div></DashboardLayout></ProtectedRoute>} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+export default App;
