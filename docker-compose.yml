@@ -1,12 +1,16 @@
 services:
+
   bot:
     build:
       context: .
       dockerfile: Dockerfile
       target: bot
     restart: unless-stopped
+    ports:
+      - "${BOT_API_PORT:-8090}:${BOT_API_PORT:-8090}"
     environment:
       APP_ENV: ${APP_ENV}
+      BOT_API_PORT: ${BOT_API_PORT:-8090}
       DEV_DISCORD_BOT_TOKEN: ${DEV_DISCORD_BOT_TOKEN}
       PROD_DISCORD_BOT_TOKEN: ${PROD_DISCORD_BOT_TOKEN}
       DB_HOST: ${DB_HOST}
@@ -22,6 +26,7 @@ services:
         condition: service_healthy
     networks:
       - bot_network
+
   app:
     build:
       context: .
@@ -44,6 +49,7 @@ services:
         condition: service_healthy
     networks:
       - bot_network
+
   frontend:
     build:
       context: .
@@ -56,6 +62,7 @@ services:
       - 5173:5173
     networks:
       - bot_network
+
   postgres:
     image: postgres:latest
     restart: unless-stopped
@@ -75,6 +82,7 @@ services:
       start_period: 15s
     networks:
       - bot_network
+
   pgadmin:
     image: dpage/pgadmin4:latest
     restart: unless-stopped
