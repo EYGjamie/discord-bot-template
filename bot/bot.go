@@ -5,12 +5,15 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"time"
 
-	"discord-bot-template/bot/settings"
-	"discord-bot-template/shared/database"
+	"discord-bot-template/bot/api"
 	"discord-bot-template/bot/services"
+	"discord-bot-template/bot/settings"
 	"discord-bot-template/bot/utils/logging"
+	"discord-bot-template/shared/database"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -22,6 +25,7 @@ type Bot struct {
 	settings       *settings.Manager
 	inviteCache    *InviteCache
 	purgeScheduler *services.PurgeScheduler
+	apiServer      *api.Server
 }
 
 func New() (*Bot, error) {
@@ -69,6 +73,9 @@ func New() (*Bot, error) {
 	// Initialize invite cache
 	inviteCache := NewInviteCache()
 
+	// Initialize API server
+	apiServer := api.NewServer(session, db)
+
 	return &Bot{
 		session:        session,
 		token:          token,
@@ -76,6 +83,7 @@ func New() (*Bot, error) {
 		settings:       settingsManager,
 		inviteCache:    inviteCache,
 		purgeScheduler: nil, // Wird nach dem Login initialisiert
+		apiServer:      apiServer,
 	}, nil
 }
 
@@ -96,6 +104,18 @@ func (bot *Bot) Start(ctx context.Context) error {
 	bot.purgeScheduler.Start()
 	log.Println("Purge Scheduler started")
 
+	// Start API server in goroutine
+	if bot.apiServer != nil {
+		go func() {
+			log.Printf("Starting Bot API server on %s", bot.apiServer.GetAddr())
+			if err := bot.apiServer.Start(); err != nil && err != http.ErrServerClosed {
+				logger.LogError("Bot API Server Error", fmt.Sprintf("Failed to start Bot API server: %v", err), "")
+				log.Printf("Bot API server error: %v", err)
+			}
+		}()
+		log.Println("Bot API Server started")
+	}
+
 	return nil
 }
 
@@ -106,6 +126,17 @@ func (bot *Bot) Stop() error {
 	if bot.purgeScheduler != nil {
 		bot.purgeScheduler.Stop()
 		log.Println("Purge Scheduler stopped")
+	}
+
+	// Stop API server
+	if bot.apiServer != nil {
+		log.Println("Shutting down Bot API server...")
+		if err := bot.apiServer.Shutdown(5 * time.Second); err != nil {
+			logger.LogError("Bot API Server Shutdown Error", fmt.Sprintf("Error shutting down Bot API server: %v", err), "")
+			log.Printf("Error shutting down Bot API server: %v", err)
+		} else {
+			log.Println("Bot API Server stopped")
+		}
 	}
 
 	bot.removeCommands()
