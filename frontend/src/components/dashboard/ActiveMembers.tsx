@@ -1,11 +1,11 @@
 import type { Member } from '../../types';
 
 const mockMembers: Member[] = [
-  { id: '1', name: 'Alex Storm', role: 'Team Captain', status: 'online' },
-  { id: '2', name: 'Maya Chen', role: 'Support', status: 'online' },
-  { id: '3', name: 'Jake Wilson', role: 'Manager', status: 'online' },
-  { id: '4', name: 'Sarah Kim', role: 'Coach', status: 'online' },
-  { id: '5', name: 'NightOwl', role: 'New Member', status: 'online' },
+  { id: '1', name: 'alexstorm', display_name: 'Alex Storm', top_role_name: 'Team Captain', avatar_url: '', global_name: 'Alex Storm', bot: false, avatar: '', mention: '<@1>', created_at: '', nick: '', joined_at: '', top_role: '1', timed_out_until: undefined, premium_since: undefined, updated_at: '' },
+  { id: '2', name: 'mayachen', display_name: 'Maya Chen', top_role_name: 'Support', avatar_url: '', global_name: 'Maya Chen', bot: false, avatar: '', mention: '<@2>', created_at: '', nick: '', joined_at: '', top_role: '2', timed_out_until: undefined, premium_since: undefined, updated_at: '' },
+  { id: '3', name: 'jakewilson', display_name: 'Jake Wilson', top_role_name: 'Manager', avatar_url: '', global_name: 'Jake Wilson', bot: false, avatar: '', mention: '<@3>', created_at: '', nick: '', joined_at: '', top_role: '3', timed_out_until: undefined, premium_since: undefined, updated_at: '' },
+  { id: '4', name: 'sarahkim', display_name: 'Sarah Kim', top_role_name: 'Coach', avatar_url: '', global_name: 'Sarah Kim', bot: false, avatar: '', mention: '<@4>', created_at: '', nick: '', joined_at: '', top_role: '4', timed_out_until: undefined, premium_since: undefined, updated_at: '' },
+  { id: '5', name: 'nightowl', display_name: 'NightOwl', top_role_name: 'New Member', avatar_url: '', global_name: 'NightOwl', bot: false, avatar: '', mention: '<@5>', created_at: '', nick: '', joined_at: '', top_role: '5', timed_out_until: undefined, premium_since: undefined, updated_at: '' },
 ];
 
 const roleColors: Record<string, string> = {
@@ -25,18 +25,16 @@ export default function ActiveMembers() {
           <div key={member.id} className="flex items-center gap-3">
             <div className="relative">
               <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-white text-sm font-medium">
-                {member.name.split(' ').map(n => n[0]).join('')}
+                {member.display_name.split(' ').map(n => n[0]).join('')}
               </div>
-              {member.status === 'online' && (
-                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#1a1f2e]" />
-              )}
+              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#1a1f2e]" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-white font-medium text-sm">{member.name}</p>
-              <p className="text-gray-400 text-xs">{member.role}</p>
+              <p className="text-white font-medium text-sm">{member.display_name}</p>
+              <p className="text-gray-400 text-xs">{member.top_role_name}</p>
             </div>
-            <span className={`px-2 py-1 text-xs font-medium rounded border ${roleColors[member.role] || 'bg-gray-500/10 text-gray-400 border-gray-500/20'}`}>
-              {member.role.split(' ')[0]}
+            <span className={`px-2 py-1 text-xs font-medium rounded border ${roleColors[member.top_role_name || ''] || 'bg-gray-500/10 text-gray-400 border-gray-500/20'}`}>
+              {member.top_role_name?.split(' ')[0]}
             </span>
           </div>
         ))}

@@ -3,6 +3,8 @@ import { useAuth } from './hooks/useAuth';
 import LoginPage from './pages/LoginPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import DashboardPage from './pages/DashboardPage';
+import MembersPage from './pages/MembersPage';
+import UserProfilePage from './pages/UserProfilePage';
 import DashboardLayout from './components/layout/DashboardLayout';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -38,7 +40,8 @@ function App() {
         <Route path="/" element={<Navigate to="/dashboard" />} />
         
         {/* Placeholder routes */}
-        <Route path="/members" element={<ProtectedRoute><DashboardLayout><div className="p-6 text-white">Members Page</div></DashboardLayout></ProtectedRoute>} />
+        <Route path="/members" element={<ProtectedRoute><DashboardLayout><MembersPage /></DashboardLayout></ProtectedRoute>} />
+        <Route path="/members/:userId" element={<ProtectedRoute><DashboardLayout><UserProfilePage /></DashboardLayout></ProtectedRoute>} />
         <Route path="/events" element={<ProtectedRoute><DashboardLayout><div className="p-6 text-white">Events Page</div></DashboardLayout></ProtectedRoute>} />
         <Route path="/tasks" element={<ProtectedRoute><DashboardLayout><div className="p-6 text-white">Tasks Page</div></DashboardLayout></ProtectedRoute>} />
         <Route path="/matches" element={<ProtectedRoute><DashboardLayout><div className="p-6 text-white">Matches Page</div></DashboardLayout></ProtectedRoute>} />

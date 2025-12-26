@@ -11,7 +11,7 @@ export const useAuth = () => {
     if (token) {
       // For now: Mock user data when token exists
       // TODO: Fetch real user data from API with token
-      setUser({
+      const mockUser = {
         id: '123456789',
         discord_id: '123456789',
         username: 'TestUser',
@@ -21,7 +21,11 @@ export const useAuth = () => {
         is_admin: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      });
+      };
+      
+      // Store discord_user_id for API calls that require authentication
+      localStorage.setItem('discord_user_id', mockUser.discord_id);
+      setUser(mockUser);
     }
     setLoading(false);
   }, []);
@@ -32,6 +36,7 @@ export const useAuth = () => {
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('discord_user_id');
     setUser(null);
   };
 

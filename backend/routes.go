@@ -23,6 +23,17 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux.HandleFunc("POST /api/auth/logout", authHandler.Logout)
 	mux.HandleFunc("GET /api/me", authHandler.GetCurrentUser)
 
+	// Member routes (protected)
+	mux.HandleFunc("GET /api/members", handlers.GetMembers(s.db.DB()))
+	mux.HandleFunc("GET /api/members/{id}", handlers.GetMemberByID(s.db.DB()))
+	mux.HandleFunc("GET /api/members/{id}/stats", handlers.GetMemberStats(s.db.DB()))
+
+	// Moderation routes (protected)
+	mux.HandleFunc("POST /api/moderation/warns", handlers.CreateWarn(s.db.DB()))
+	mux.HandleFunc("POST /api/moderation/notes", handlers.CreateNote(s.db.DB()))
+	mux.HandleFunc("DELETE /api/moderation/warns/{id}", handlers.DeleteWarn(s.db.DB()))
+	mux.HandleFunc("DELETE /api/moderation/notes/{id}", handlers.DeleteNote(s.db.DB()))
+
 	// Health check
 	mux.HandleFunc("/health", s.healthHandler)
 
@@ -39,7 +50,7 @@ func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 		// Set CORS headers
 		w.Header().Set("Access-Control-Allow-Origin", "*") // Replace "*" with specific origins if needed
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
-		w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-CSRF-Token")
+		w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-CSRF-Token, X-User-ID")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 
 		// Handle preflight OPTIONS requests

@@ -21,7 +21,7 @@ func UpsertUser(db *sql.DB, discordUser *discordgo.User, member *discordgo.Membe
 	}
 
 	// Erstelle User-Objekt mit Discord-Daten
-	user := buildUserFromDiscord(discordUser, member)
+	user := buildUserFromDiscord(db, discordUser, member)
 
 	logger := logging.NewLogger(db, nil, "", "service.user_sync")
 
@@ -83,17 +83,18 @@ func RemoveUser(db *sql.DB, discordUser *discordgo.User) {
 }
 
 // buildUserFromDiscord erstellt ein User-Objekt aus Discord-Daten
-func buildUserFromDiscord(discordUser *discordgo.User, member *discordgo.Member) *tables.User {
+func buildUserFromDiscord(db *sql.DB, discordUser *discordgo.User, member *discordgo.Member) *tables.User {
 	// Discord Snowflake ID zu Timestamp konvertieren
 	// Discord Snowflake Format: ((timestamp_ms - DISCORD_EPOCH) << 22) | internal_data
 	userID := discordUser.ID
 	var createdAt time.Time
 
-	// Versuche Discord ID in Timestamp zu konvertieren
-	if id, err := time.Parse("", userID); err == nil {
-		createdAt = id
-	} else {
+	// Nutze die CreationTime Methode von discordgo, die den Snowflake korrekt parsed
+	createdAt, err := discordgo.SnowflakeTimestamp(userID)
+	if err != nil {
 		// Fallback auf aktuelle Zeit wenn Parsing fehlschlägt
+		logger := logging.NewLogger(db, nil, "", "service.user_sync")
+		logger.LogError("CreatedAt Parse Failed", fmt.Sprintf("Could not parse CreatedAt for user %s: %v", userID, err), "")
 		createdAt = time.Now()
 	}
 
