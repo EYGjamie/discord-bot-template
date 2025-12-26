@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"discord-bot-template/internal/server"
+	server "discord-bot-template/backend"
 )
 
 func gracefulShutdown(apiServer *http.Server, done chan bool) {

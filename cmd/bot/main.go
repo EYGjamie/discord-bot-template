@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"discord-bot-template/internal/bot"
+	"discord-bot-template/bot"
 
 	"github.com/joho/godotenv"
 )
