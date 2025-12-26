@@ -27,7 +27,7 @@ services:
     networks:
       - bot_network
 
-  app:
+  backend:
     build:
       context: .
       dockerfile: Dockerfile
@@ -57,7 +57,7 @@ services:
       target: frontend
     restart: unless-stopped
     depends_on:
-      - app
+      - backend
     ports:
       - 5173:5173
     networks:

@@ -24,12 +24,12 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o bot cmd/bot/main.go
+RUN go build -o botapp cmd/bot/main.go
 
 FROM alpine:3.21 AS bot
 WORKDIR /app
-COPY --from=bot_build /app/bot /app/bot
-CMD ["./bot"]
+COPY --from=bot_build /app/botapp /app/botapp
+CMD ["./botapp"]
 
 
 FROM node:23-slim AS frontend_builder
