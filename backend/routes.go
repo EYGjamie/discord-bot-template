@@ -18,6 +18,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(s.db.DB())
 	auditLogger := middleware.NewAuditLogger(s.db.DB())
+	permissionChecker := middleware.NewPermissionChecker(s.db.DB())
 
 	// Auth routes (public)
 	mux.HandleFunc("GET /api/auth/discord/login", authHandler.DiscordLogin)
@@ -25,20 +26,74 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux.HandleFunc("POST /api/auth/logout", authHandler.Logout)
 	mux.HandleFunc("GET /api/me", authHandler.GetCurrentUser)
 
-	// Member routes (protected)
-	mux.HandleFunc("GET /api/members", handlers.GetMembers(s.db.DB()))
-	mux.HandleFunc("GET /api/members/{id}", handlers.GetMemberByID(s.db.DB()))
-	mux.HandleFunc("GET /api/members/{id}/stats", handlers.GetMemberStats(s.db.DB()))
+	// Member routes (protected - requires moderator role)
+	mux.HandleFunc("GET /api/members",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionModerator)(
+				handlers.GetMembers(s.db.DB()),
+			),
+		),
+	)
+	mux.HandleFunc("GET /api/members/{id}",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionModerator)(
+				handlers.GetMemberByID(s.db.DB()),
+			),
+		),
+	)
+	mux.HandleFunc("GET /api/members/{id}/stats",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionModerator)(
+				handlers.GetMemberStats(s.db.DB()),
+			),
+		),
+	)
 
-	// Moderation routes (protected)
-	mux.HandleFunc("POST /api/moderation/warns", handlers.CreateWarn(s.db.DB()))
-	mux.HandleFunc("POST /api/moderation/notes", handlers.CreateNote(s.db.DB()))
-	mux.HandleFunc("DELETE /api/moderation/warns/{id}", handlers.DeleteWarn(s.db.DB()))
-	mux.HandleFunc("DELETE /api/moderation/notes/{id}", handlers.DeleteNote(s.db.DB()))
+	// Moderation routes (protected - requires moderator role)
+	mux.HandleFunc("POST /api/moderation/warns",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionModerator)(
+				handlers.CreateWarn(s.db.DB()),
+			),
+		),
+	)
+	mux.HandleFunc("POST /api/moderation/notes",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionModerator)(
+				handlers.CreateNote(s.db.DB()),
+			),
+		),
+	)
+	mux.HandleFunc("DELETE /api/moderation/warns/{id}",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionModerator)(
+				handlers.DeleteWarn(s.db.DB()),
+			),
+		),
+	)
+	mux.HandleFunc("DELETE /api/moderation/notes/{id}",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionModerator)(
+				handlers.DeleteNote(s.db.DB()),
+			),
+		),
+	)
 
 	// Audit logs routes (protected - admin only)
-	mux.HandleFunc("GET /api/audit-logs", handlers.GetAuditLogs(s.db.DB()))
-	mux.HandleFunc("GET /api/audit-logs/user/{id}", handlers.GetUserAuditLogs(s.db.DB()))
+	mux.HandleFunc("GET /api/audit-logs",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				handlers.GetAuditLogs(s.db.DB()),
+			),
+		),
+	)
+	mux.HandleFunc("GET /api/audit-logs/user/{id}",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				handlers.GetUserAuditLogs(s.db.DB()),
+			),
+		),
+	)
 
 	// Health check
 	mux.HandleFunc("/health", s.healthHandler)

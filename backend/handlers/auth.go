@@ -250,8 +250,10 @@ func (h *AuthHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 		"avatar":        claims.Avatar,
 		"discriminator": "0", // Discord removed discriminators
 		"is_admin":      false,
+		"is_moderator":  false,
 		"created_at":    time.Now().Format(time.RFC3339),
 		"updated_at":    time.Now().Format(time.RFC3339),
+		"roles":         []map[string]interface{}{},
 	}
 
 	// If user exists in database, add more details
@@ -265,6 +267,26 @@ func (h *AuthHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 		response["joined_at"] = user.JoinedAt
 		response["created_at"] = user.CreatedAt.Format(time.RFC3339)
 		response["updated_at"] = user.UpdatedAt.Format(time.RFC3339)
+
+		// Fetch user roles
+		roles, roleErr := tables.GetUserRoles(h.db, claims.UserID)
+		if roleErr == nil && len(roles) > 0 {
+			// Convert roles to response format
+			roleList := make([]map[string]interface{}, len(roles))
+			for i, role := range roles {
+				roleList[i] = map[string]interface{}{
+					"id":       role.ID,
+					"name":     role.Name,
+					"color":    role.Color,
+					"position": role.Position,
+				}
+			}
+			response["roles"] = roleList
+
+			// Check for moderator/admin permissions
+			response["is_moderator"] = h.checkIsModerator(roles)
+			response["is_admin"] = h.checkIsAdmin(roles)
+		}
 	} else {
 		// Generate avatar URL from Discord CDN
 		if claims.Avatar != "" {
@@ -274,4 +296,77 @@ func (h *AuthHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+// checkIsModerator checks if user has any moderator role
+func (h *AuthHandler) checkIsModerator(roles []*tables.Role) bool {
+	modRoleIDs := os.Getenv("MODERATOR_ROLE_IDS")
+	if modRoleIDs == "" {
+		return false
+	}
+
+	modIDs := splitAndTrim(modRoleIDs)
+	for _, role := range roles {
+		for _, modID := range modIDs {
+			if role.ID == modID {
+				return true
+			}
+		}
+	}
+
+	// Also check admin roles (admins are also moderators)
+	return h.checkIsAdmin(roles)
+}
+
+// checkIsAdmin checks if user has any admin role
+func (h *AuthHandler) checkIsAdmin(roles []*tables.Role) bool {
+	adminRoleIDs := os.Getenv("ADMIN_ROLE_IDS")
+	if adminRoleIDs == "" {
+		return false
+	}
+
+	adminIDs := splitAndTrim(adminRoleIDs)
+	for _, role := range roles {
+		for _, adminID := range adminIDs {
+			if role.ID == adminID {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// splitAndTrim splits a comma-separated string and trims whitespace
+func splitAndTrim(s string) []string {
+	result := []string{}
+	current := ""
+	for _, char := range s {
+		if char == ',' {
+			if trimmed := trimSpace(current); trimmed != "" {
+				result = append(result, trimmed)
+			}
+			current = ""
+		} else {
+			current += string(char)
+		}
+	}
+	if trimmed := trimSpace(current); trimmed != "" {
+		result = append(result, trimmed)
+	}
+	return result
+}
+
+// trimSpace removes leading and trailing whitespace
+func trimSpace(s string) string {
+	start := 0
+	end := len(s)
+
+	for start < end && (s[start] == ' ' || s[start] == '\t' || s[start] == '\n' || s[start] == '\r') {
+		start++
+	}
+	for end > start && (s[end-1] == ' ' || s[end-1] == '\t' || s[end-1] == '\n' || s[end-1] == '\r') {
+		end--
+	}
+
+	return s[start:end]
 }

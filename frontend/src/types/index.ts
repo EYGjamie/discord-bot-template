@@ -7,12 +7,35 @@ export interface User {
   avatar_url?: string;
   discriminator: string;
   is_admin: boolean;
+  is_moderator: boolean;
   created_at: string;
   updated_at: string;
   global_name?: string;
   display_name?: string;
   nick?: string;
   joined_at?: string;
+  roles?: Role[];
+}
+
+export interface Role {
+  id: string;
+  name: string;
+  color: number;
+  position: number;
+}
+
+export interface Permission {
+  level: 'public' | 'member' | 'moderator' | 'admin';
+}
+
+export interface PermissionCheck {
+  canViewMembers: boolean;
+  canModerate: boolean;
+  canViewAuditLogs: boolean;
+  canManageSettings: boolean;
+  isAdmin: boolean;
+  isModerator: boolean;
+  isMember: boolean;
 }
 
 export interface Member {

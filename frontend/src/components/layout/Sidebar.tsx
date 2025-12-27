@@ -12,21 +12,31 @@ import {
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useAuth } from '../../hooks/useAuth';
+import { usePermissions } from '../../hooks/usePermissions';
+import { PermissionGate } from '../auth/PermissionGate';
 
-const navigation = [
-  { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-  { name: 'Members', icon: Users, href: '/members' },
-  { name: 'Events', icon: Calendar, href: '/events' },
-  { name: 'Tasks', icon: ListTodo, href: '/tasks' },
-  { name: 'Matches', icon: Trophy, href: '/matches' },
-  { name: 'Discord', icon: MessageSquare, href: '/discord' },
-  { name: 'Notifications', icon: Bell, href: '/notifications' },
-  { name: 'Settings', icon: Settings, href: '/settings' },
+interface NavItem {
+  name: string;
+  icon: any;
+  href: string;
+  requiredPermission?: 'public' | 'member' | 'moderator' | 'admin';
+}
+
+const navigation: NavItem[] = [
+  { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', requiredPermission: 'member' },
+  { name: 'Members', icon: Users, href: '/members', requiredPermission: 'moderator' },
+  { name: 'Events', icon: Calendar, href: '/events', requiredPermission: 'member' },
+  { name: 'Tasks', icon: ListTodo, href: '/tasks', requiredPermission: 'member' },
+  { name: 'Matches', icon: Trophy, href: '/matches', requiredPermission: 'member' },
+  { name: 'Discord', icon: MessageSquare, href: '/discord', requiredPermission: 'member' },
+  { name: 'Notifications', icon: Bell, href: '/notifications', requiredPermission: 'member' },
+  { name: 'Settings', icon: Settings, href: '/settings', requiredPermission: 'admin' },
 ];
 
 export default function Sidebar() {
   const location = useLocation();
   const { user, logout } = useAuth();
+  const permissions = usePermissions(user);
 
   const handleLogout = () => {
     logout();
@@ -55,19 +65,24 @@ export default function Sidebar() {
         {navigation.map((item) => {
           const isActive = location.pathname === item.href;
           return (
-            <Link
+            <PermissionGate 
               key={item.name}
-              to={item.href}
-              className={cn(
-                'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
-                isActive 
-                  ? 'bg-cyan-500/10 text-cyan-400' 
-                  : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'
-              )}
+              user={user}
+              requiredPermission={item.requiredPermission || 'public'}
             >
-              <item.icon className="w-5 h-5" />
-              <span className="font-medium">{item.name}</span>
-            </Link>
+              <Link
+                to={item.href}
+                className={cn(
+                  'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
+                  isActive 
+                    ? 'bg-cyan-500/10 text-cyan-400' 
+                    : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'
+                )}
+              >
+                <item.icon className="w-5 h-5" />
+                <span className="font-medium">{item.name}</span>
+              </Link>
+            </PermissionGate>
           );
         })}
       </nav>
@@ -92,7 +107,7 @@ export default function Sidebar() {
                 {user.display_name || user.username}
               </p>
               <p className="text-gray-400 text-xs truncate">
-                View Profile
+                {permissions.isAdmin ? '👑 Admin' : permissions.isModerator ? '🛡️ Moderator' : 'Member'}
               </p>
             </div>
           </Link>

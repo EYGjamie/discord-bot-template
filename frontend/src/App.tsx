@@ -6,8 +6,9 @@ import DashboardPage from './pages/DashboardPage';
 import MembersPage from './pages/MembersPage';
 import UserProfilePage from './pages/UserProfilePage';
 import DashboardLayout from './components/layout/DashboardLayout';
+import { ProtectedRoute } from './components/auth/PermissionGate';
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function AuthProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
@@ -22,6 +23,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  const { user } = useAuth();
+  
   return (
     <BrowserRouter>
       <Routes>
@@ -30,24 +33,61 @@ function App() {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
+            <AuthProtectedRoute>
               <DashboardLayout>
                 <DashboardPage />
               </DashboardLayout>
-            </ProtectedRoute>
+            </AuthProtectedRoute>
           }
         />
         <Route path="/" element={<Navigate to="/dashboard" />} />
         
-        {/* Placeholder routes */}
-        <Route path="/members" element={<ProtectedRoute><DashboardLayout><MembersPage /></DashboardLayout></ProtectedRoute>} />
-        <Route path="/members/:userId" element={<ProtectedRoute><DashboardLayout><UserProfilePage /></DashboardLayout></ProtectedRoute>} />
-        <Route path="/events" element={<ProtectedRoute><DashboardLayout><div className="p-6 text-white">Events Page</div></DashboardLayout></ProtectedRoute>} />
-        <Route path="/tasks" element={<ProtectedRoute><DashboardLayout><div className="p-6 text-white">Tasks Page</div></DashboardLayout></ProtectedRoute>} />
-        <Route path="/matches" element={<ProtectedRoute><DashboardLayout><div className="p-6 text-white">Matches Page</div></DashboardLayout></ProtectedRoute>} />
-        <Route path="/discord" element={<ProtectedRoute><DashboardLayout><div className="p-6 text-white">Discord Page</div></DashboardLayout></ProtectedRoute>} />
-        <Route path="/notifications" element={<ProtectedRoute><DashboardLayout><div className="p-6 text-white">Notifications Page</div></DashboardLayout></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><DashboardLayout><div className="p-6 text-white">Settings Page</div></DashboardLayout></ProtectedRoute>} />
+        {/* Member routes - requires moderator permission */}
+        <Route 
+          path="/members" 
+          element={
+            <AuthProtectedRoute>
+              <DashboardLayout>
+                <ProtectedRoute user={user} requiredPermission="moderator">
+                  <MembersPage />
+                </ProtectedRoute>
+              </DashboardLayout>
+            </AuthProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/members/:userId" 
+          element={
+            <AuthProtectedRoute>
+              <DashboardLayout>
+                <ProtectedRoute user={user} requiredPermission="moderator">
+                  <UserProfilePage />
+                </ProtectedRoute>
+              </DashboardLayout>
+            </AuthProtectedRoute>
+          } 
+        />
+        
+        {/* Public routes for guild members */}
+        <Route path="/events" element={<AuthProtectedRoute><DashboardLayout><div className="p-6 text-white">Events Page</div></DashboardLayout></AuthProtectedRoute>} />
+        <Route path="/tasks" element={<AuthProtectedRoute><DashboardLayout><div className="p-6 text-white">Tasks Page</div></DashboardLayout></AuthProtectedRoute>} />
+        <Route path="/matches" element={<AuthProtectedRoute><DashboardLayout><div className="p-6 text-white">Matches Page</div></DashboardLayout></AuthProtectedRoute>} />
+        <Route path="/discord" element={<AuthProtectedRoute><DashboardLayout><div className="p-6 text-white">Discord Page</div></DashboardLayout></AuthProtectedRoute>} />
+        <Route path="/notifications" element={<AuthProtectedRoute><DashboardLayout><div className="p-6 text-white">Notifications Page</div></DashboardLayout></AuthProtectedRoute>} />
+        
+        {/* Settings - requires admin permission */}
+        <Route 
+          path="/settings" 
+          element={
+            <AuthProtectedRoute>
+              <DashboardLayout>
+                <ProtectedRoute user={user} requiredPermission="admin">
+                  <div className="p-6 text-white">Settings Page</div>
+                </ProtectedRoute>
+              </DashboardLayout>
+            </AuthProtectedRoute>
+          } 
+        />
       </Routes>
     </BrowserRouter>
   );
