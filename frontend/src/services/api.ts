@@ -14,6 +14,11 @@ const getAuthHeaders = (): HeadersInit => {
   return headers;
 };
 
+// Helper to get user ID from localStorage
+const getUserId = (): string => {
+  return localStorage.getItem('discord_user_id') || '';
+};
+
 export const api = {
   auth: {
     loginUrl: () => `${API_BASE_URL}/api/auth/discord/login`,
@@ -83,6 +88,47 @@ export const api = {
       fetch(`${API_BASE_URL}/api/moderation/notes/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
+      }).then(res => res.json()),
+  },
+
+  events: {
+    getEvents: (params?: { month?: number; year?: number }) => {
+      const query = new URLSearchParams();
+      if (params?.month) query.set('month', params.month.toString());
+      if (params?.year) query.set('year', params.year.toString());
+      
+      return fetch(`${API_BASE_URL}/api/events?${query.toString()}`).then(res => res.json());
+    },
+    
+    getEventById: (id: number) => 
+      fetch(`${API_BASE_URL}/api/events/${id}`).then(res => res.json()),
+    
+    createEvent: (data: { title: string; description: string; start_date: string; end_date: string; start_time: string; end_time: string; color: string; location: string; guests: string }) =>
+      fetch(`${API_BASE_URL}/api/events`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-User-ID': getUserId(),
+        },
+        body: JSON.stringify(data),
+      }).then(res => res.json()),
+    
+    updateEvent: (id: number, data: { title: string; description: string; start_date: string; end_date: string; start_time: string; end_time: string; color: string; location: string; guests: string }) =>
+      fetch(`${API_BASE_URL}/api/events/${id}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-User-ID': getUserId(),
+        },
+        body: JSON.stringify(data),
+      }).then(res => res.json()),
+    
+    deleteEvent: (id: number) =>
+      fetch(`${API_BASE_URL}/api/events/${id}`, {
+        method: 'DELETE',
+        headers: { 
+          'X-User-ID': getUserId(),
+        },
       }).then(res => res.json()),
   },
 };

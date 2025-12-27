@@ -124,3 +124,34 @@ export interface Event {
   participants: number;
   status: 'upcoming' | 'confirmed' | 'completed';
 }
+
+export interface CalendarEvent {
+  id: number;
+  guild_id: string;
+  title: string;
+  description: string;
+  start_date: string; // YYYY-MM-DD
+  end_date: string;   // YYYY-MM-DD
+  start_time: string; // HH:MM
+  end_time: string;   // HH:MM
+  color: string;      // Hex color
+  location: string;
+  guests: string;     // Comma-separated list of guest names
+  created_by: string;
+  creator_name: string;
+  creator_avatar: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateEventRequest {
+  title: string;
+  description: string;
+  start_date: string;
+  end_date: string;
+  start_time: string;
+  end_time: string;
+  color: string;
+  location: string;
+  guests: string;
+}

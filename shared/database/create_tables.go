@@ -132,6 +132,20 @@ func InitializeTables(db *sql.DB) error {
 	}
 	log.Println("WebApp-Audit-Logs table initialized successfully")
 
+	// Erstelle Events-Tabelle
+	if err := tables.CreateEventsTable(db); err != nil {
+		log.Printf("Error creating events table: %v", err)
+		return err
+	}
+	log.Println("Events table initialized successfully")
+
+	// Erstelle Event Categories-Tabelle
+	if err := tables.CreateEventCategoriesTable(db); err != nil {
+		log.Printf("Error creating event_categories table: %v", err)
+		return err
+	}
+	log.Println("Event Categories table initialized successfully")
+
 	log.Println("All database tables initialized successfully")
 	return nil
 }

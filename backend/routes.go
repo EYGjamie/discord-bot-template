@@ -79,6 +79,37 @@ func (s *Server) RegisterRoutes() http.Handler {
 		),
 	)
 
+	// Event routes (protected - all members can access)
+	mux.HandleFunc("GET /api/events", handlers.GetEvents(s.db.DB()))
+	mux.HandleFunc("GET /api/events/{id}", handlers.GetEventByID(s.db.DB()))
+	mux.HandleFunc("POST /api/events", handlers.CreateEvent(s.db.DB()))
+	mux.HandleFunc("PUT /api/events/{id}", handlers.UpdateEvent(s.db.DB()))
+	mux.HandleFunc("DELETE /api/events/{id}", handlers.DeleteEvent(s.db.DB()))
+
+	// Event Category routes (GET public, POST/PUT/DELETE admin only)
+	mux.HandleFunc("GET /api/event-categories", handlers.GetEventCategories(s.db.DB()))
+	mux.HandleFunc("POST /api/event-categories",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				handlers.CreateEventCategory(s.db.DB()),
+			),
+		),
+	)
+	mux.HandleFunc("PUT /api/event-categories/{id}",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				handlers.UpdateEventCategory(s.db.DB()),
+			),
+		),
+	)
+	mux.HandleFunc("DELETE /api/event-categories/{id}",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				handlers.DeleteEventCategory(s.db.DB()),
+			),
+		),
+	)
+
 	// Audit logs routes (protected - admin only)
 	mux.HandleFunc("GET /api/audit-logs",
 		middleware.RequireAuth(
