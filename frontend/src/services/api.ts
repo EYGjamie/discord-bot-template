@@ -14,7 +14,19 @@ export const api = {
   auth: {
     loginUrl: () => `${API_BASE_URL}/api/auth/discord/login`,
     logout: () => fetch(`${API_BASE_URL}/api/auth/logout`, { method: 'POST' }),
-    getCurrentUser: () => fetch(`${API_BASE_URL}/api/me`).then(res => res.json()),
+    getCurrentUser: () => {
+      const token = localStorage.getItem('token');
+      return fetch(`${API_BASE_URL}/api/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }).then(res => {
+        if (!res.ok) {
+          throw new Error('Failed to fetch user data');
+        }
+        return res.json();
+      });
+    },
   },
   
   dashboard: {

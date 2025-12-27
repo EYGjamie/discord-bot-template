@@ -4,10 +4,15 @@ export interface User {
   username: string;
   email: string;
   avatar: string;
+  avatar_url?: string;
   discriminator: string;
   is_admin: boolean;
   created_at: string;
   updated_at: string;
+  global_name?: string;
+  display_name?: string;
+  nick?: string;
+  joined_at?: string;
 }
 
 export interface Member {

@@ -14,8 +14,8 @@ import (
 func (s *Server) RegisterRoutes() http.Handler {
 	mux := http.NewServeMux()
 
-	// Initialize auth handler
-	authHandler := handlers.NewAuthHandler()
+	// Initialize auth handler with database
+	authHandler := handlers.NewAuthHandler(s.db.DB())
 
 	// Auth routes (public)
 	mux.HandleFunc("GET /api/auth/discord/login", authHandler.DiscordLogin)

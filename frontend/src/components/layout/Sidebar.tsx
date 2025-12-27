@@ -7,9 +7,11 @@ import {
   Trophy,
   MessageSquare,
   Bell,
-  Settings 
+  Settings,
+  LogOut
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { useAuth } from '../../hooks/useAuth';
 
 const navigation = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
@@ -24,9 +26,15 @@ const navigation = [
 
 export default function Sidebar() {
   const location = useLocation();
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    window.location.href = '/login';
+  };
 
   return (
-    <div className="w-64 bg-[#1a1f2e] h-screen fixed left-0 top-0 border-r border-gray-800">
+    <div className="w-64 bg-[#1a1f2e] h-screen fixed left-0 top-0 border-r border-gray-800 flex flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-gray-800">
         <div className="flex items-center gap-3">
@@ -43,7 +51,7 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="p-4 space-y-1">
+      <nav className="p-4 space-y-1 flex-1">
         {navigation.map((item) => {
           const isActive = location.pathname === item.href;
           return (
@@ -63,6 +71,40 @@ export default function Sidebar() {
           );
         })}
       </nav>
+
+      {/* User Profile */}
+      {user && (
+        <div className="p-4 border-t border-gray-800">
+          <Link
+            to={`/members/${user.discord_id}`}
+            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-800/50 transition-colors group"
+          >
+            <div className="relative">
+              <img
+                src={user.avatar_url || `https://cdn.discordapp.com/embed/avatars/${parseInt(user.discord_id) % 5}.png`}
+                alt={user.username}
+                className="w-10 h-10 rounded-full"
+              />
+              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#1a1f2e]"></div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-medium text-sm truncate group-hover:text-cyan-400 transition-colors">
+                {user.display_name || user.username}
+              </p>
+              <p className="text-gray-400 text-xs truncate">
+                View Profile
+              </p>
+            </div>
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2 mt-2 rounded-lg text-gray-400 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="font-medium text-sm">Logout</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

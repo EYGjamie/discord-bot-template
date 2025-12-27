@@ -4,16 +4,11 @@ go 1.24.6
 
 require (
 	github.com/coder/websocket v1.8.14
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/joho/godotenv v1.5.1
 	github.com/testcontainers/testcontainers-go v0.39.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.39.0
-)
-
-require (
-	github.com/go-chi/chi/v5 v5.2.3 // indirect
-	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
-	golang.org/x/oauth2 v0.34.0 // indirect
 )
 
 require (
