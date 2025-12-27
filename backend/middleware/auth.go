@@ -49,7 +49,7 @@ func RequireAuth(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		// User-ID im Context speichern für spätere Verwendung
-		ctx := context.WithValue(r.Context(), UserIDKey, userID)
+		ctx := NewContextWithUserID(r.Context(), userID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 }
@@ -60,4 +60,9 @@ func GetUserIDFromContext(ctx context.Context) string {
 		return userID
 	}
 	return ""
+}
+
+// NewContextWithUserID erstellt einen neuen Context mit User ID
+func NewContextWithUserID(ctx context.Context, userID string) context.Context {
+	return context.WithValue(ctx, UserIDKey, userID)
 }

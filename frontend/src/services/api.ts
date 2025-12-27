@@ -1,13 +1,17 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
-// Helper to get current user's Discord ID from localStorage
-// The user's discord_id should be stored during login
-const getUserId = (): string => {
-  const userId = localStorage.getItem('discord_user_id');
-  if (!userId) {
-    console.warn('No discord_user_id found in localStorage. User might not be authenticated.');
+// Helper to get Authorization header with JWT token
+const getAuthHeaders = (): HeadersInit => {
+  const token = localStorage.getItem('token');
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
-  return userId || '';
+  
+  return headers;
 };
 
 export const api = {
@@ -42,41 +46,43 @@ export const api = {
       if (params?.search) query.set('search', params.search);
       if (params?.role) query.set('role', params.role);
       
-      return fetch(`${API_BASE_URL}/api/members?${query.toString()}`).then(res => res.json());
+      return fetch(`${API_BASE_URL}/api/members?${query.toString()}`, {
+        headers: getAuthHeaders(),
+      }).then(res => res.json());
     },
-    getMemberById: (id: string) => fetch(`${API_BASE_URL}/api/members/${id}`).then(res => res.json()),
-    getMemberStats: (id: string) => fetch(`${API_BASE_URL}/api/members/${id}/stats`).then(res => res.json()),
+    getMemberById: (id: string) => fetch(`${API_BASE_URL}/api/members/${id}`, {
+      headers: getAuthHeaders(),
+    }).then(res => res.json()),
+    getMemberStats: (id: string) => fetch(`${API_BASE_URL}/api/members/${id}/stats`, {
+      headers: getAuthHeaders(),
+    }).then(res => res.json()),
   },
 
   moderation: {
     createWarn: (data: { user_id: string; reason: string }) => 
       fetch(`${API_BASE_URL}/api/moderation/warns`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-User-ID': getUserId(),
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(data),
       }).then(res => res.json()),
     
     createNote: (data: { user_id: string; reason: string }) => 
       fetch(`${API_BASE_URL}/api/moderation/notes`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-User-ID': getUserId(),
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(data),
       }).then(res => res.json()),
     
     deleteWarn: (id: number) => 
       fetch(`${API_BASE_URL}/api/moderation/warns/${id}`, {
         method: 'DELETE',
+        headers: getAuthHeaders(),
       }).then(res => res.json()),
     
     deleteNote: (id: number) => 
       fetch(`${API_BASE_URL}/api/moderation/notes/${id}`, {
         method: 'DELETE',
+        headers: getAuthHeaders(),
       }).then(res => res.json()),
   },
 };

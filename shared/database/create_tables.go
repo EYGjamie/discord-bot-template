@@ -125,6 +125,13 @@ func InitializeTables(db *sql.DB) error {
 	}
 	log.Println("Channel-Purge-Settings table initialized successfully")
 
+	// Erstelle WebApp-Audit-Logs-Tabelle
+	if err := tables.CreateWebAppAuditLogsTable(db); err != nil {
+		log.Printf("Error creating webapp_audit_logs table: %v", err)
+		return err
+	}
+	log.Println("WebApp-Audit-Logs table initialized successfully")
+
 	log.Println("All database tables initialized successfully")
 	return nil
 }

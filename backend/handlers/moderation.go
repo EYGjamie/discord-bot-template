@@ -30,29 +30,45 @@ func CreateWarn(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req CreateModerationRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{"error": "Invalid request body"})
 			return
 		}
 
-		// Get moderator ID from request (authenticated user)
-		moderatorID := middleware.GetUserIDFromRequest(r)
+		// Get moderator ID from context (set by audit middleware)
+		moderatorID := middleware.GetUserIDFromContext(r.Context())
 		if moderatorID == "" {
-			http.Error(w, "Unauthorized: User not authenticated", http.StatusUnauthorized)
+			// Fallback: Try to get from request headers
+			moderatorID = middleware.GetUserIDFromRequest(r)
+		}
+		if moderatorID == "" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(map[string]string{"error": "Unauthorized: User not authenticated"})
 			return
 		}
 
 		// Validierung
 		if req.UserID == "" || req.Reason == "" {
-			http.Error(w, "user_id and reason are required", http.StatusBadRequest)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{"error": "user_id and reason are required"})
 			return
 		}
 
 		guildID := os.Getenv("GUILD_ID")
 		if guildID == "" {
 			log.Println("GUILD_ID environment variable not set")
-			http.Error(w, "Server configuration error", http.StatusInternalServerError)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"error": "Server configuration error"})
 			return
 		}
+
+		// Debug logging
+		log.Printf("Creating warn - GuildID: %s (len=%d), UserID: %s (len=%d), ModeratorID: %s (len=%d), Reason: %s (len=%d)",
+			guildID, len(guildID), req.UserID, len(req.UserID), moderatorID, len(moderatorID), req.Reason, len(req.Reason))
 
 		// Warn in DB eintragen
 		var warnID int64
@@ -65,7 +81,9 @@ func CreateWarn(db *sql.DB) http.HandlerFunc {
 
 		if err != nil {
 			log.Printf("Error creating warn: %v", err)
-			http.Error(w, "Failed to create warn", http.StatusInternalServerError)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"error": "Failed to create warn: " + err.Error()})
 			return
 		}
 

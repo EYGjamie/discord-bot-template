@@ -2,6 +2,7 @@ package server
 
 import (
 	"discord-bot-template/backend/handlers"
+	"discord-bot-template/backend/middleware"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -14,8 +15,9 @@ import (
 func (s *Server) RegisterRoutes() http.Handler {
 	mux := http.NewServeMux()
 
-	// Initialize auth handler with database
+	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(s.db.DB())
+	auditLogger := middleware.NewAuditLogger(s.db.DB())
 
 	// Auth routes (public)
 	mux.HandleFunc("GET /api/auth/discord/login", authHandler.DiscordLogin)
@@ -34,6 +36,10 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux.HandleFunc("DELETE /api/moderation/warns/{id}", handlers.DeleteWarn(s.db.DB()))
 	mux.HandleFunc("DELETE /api/moderation/notes/{id}", handlers.DeleteNote(s.db.DB()))
 
+	// Audit logs routes (protected - admin only)
+	mux.HandleFunc("GET /api/audit-logs", handlers.GetAuditLogs(s.db.DB()))
+	mux.HandleFunc("GET /api/audit-logs/user/{id}", handlers.GetUserAuditLogs(s.db.DB()))
+
 	// Health check
 	mux.HandleFunc("/health", s.healthHandler)
 
@@ -41,8 +47,9 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux.HandleFunc("/", s.HelloWorldHandler)
 	mux.HandleFunc("/websocket", s.websocketHandler)
 
-	// Wrap the mux with CORS middleware
-	return s.corsMiddleware(mux)
+	// Wrap with audit logging middleware, then CORS middleware
+	handler := auditLogger.Middleware(mux)
+	return s.corsMiddleware(handler)
 }
 
 func (s *Server) corsMiddleware(next http.Handler) http.Handler {
