@@ -190,3 +190,35 @@ export interface CreateMatchRequest {
   location: string;
   guests: string;
 }
+
+export interface DiscordStatistic {
+  id: number;
+  guild_id: string;
+  member_count: number;
+  role_member_count: number;
+  role_id: string;
+  total_channels: number;
+  text_channels: number;
+  voice_channels: number;
+  category_channels: number;
+  voice_user_count: number;
+  active_voice_channels: number;
+  timestamp: string;
+  source: string;
+  created_at: string;
+}
+
+export interface StatisticChange {
+  absolute: number;
+  relative: number;
+  direction: 'up' | 'down' | 'stable';
+}
+
+export interface StatisticComparison {
+  current: DiscordStatistic;
+  previous?: DiscordStatistic;
+  memberChange?: StatisticChange;
+  roleMemberChange?: StatisticChange;
+  channelChange?: StatisticChange;
+  voiceUserChange?: StatisticChange;
+}

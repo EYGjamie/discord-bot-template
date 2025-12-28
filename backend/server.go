@@ -9,13 +9,15 @@ import (
 
 	_ "github.com/joho/godotenv/autoload"
 
+	"discord-bot-template/backend/services"
 	"discord-bot-template/shared/database"
 )
 
 type Server struct {
 	port int
 
-	db database.Service
+	db        database.Service
+	scheduler *services.DiscordStatsScheduler
 }
 
 func NewServer() *http.Server {
@@ -25,6 +27,10 @@ func NewServer() *http.Server {
 
 		db: database.New(),
 	}
+
+	// Initialisiere und starte den Discord Stats Scheduler
+	NewServer.scheduler = services.NewDiscordStatsScheduler(NewServer.db.DB())
+	NewServer.scheduler.Start()
 
 	// Declare Server config
 	server := &http.Server{
@@ -36,4 +42,11 @@ func NewServer() *http.Server {
 	}
 
 	return server
+}
+
+// Shutdown stoppt den Server und alle Services
+func (s *Server) Shutdown() {
+	if s.scheduler != nil {
+		s.scheduler.Stop()
+	}
 }

@@ -153,6 +153,13 @@ func InitializeTables(db *sql.DB) error {
 	}
 	log.Println("Matches table initialized successfully")
 
+	// Erstelle Discord-Statistics-Tabelle
+	if err := tables.CreateDiscordStatisticsTable(db); err != nil {
+		log.Printf("Error creating discord_statistics table: %v", err)
+		return err
+	}
+	log.Println("Discord-Statistics table initialized successfully")
+
 	log.Println("All database tables initialized successfully")
 	return nil
 }

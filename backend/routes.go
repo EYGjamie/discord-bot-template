@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/coder/websocket"
@@ -133,6 +135,29 @@ func (s *Server) RegisterRoutes() http.Handler {
 		),
 	)
 
+	// Discord Statistics routes (protected - moderator access)
+	mux.HandleFunc("GET /api/discord/stats/current",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionModerator)(
+				handlers.GetCurrentStats(s.db.DB()),
+			),
+		),
+	)
+	mux.HandleFunc("GET /api/discord/stats/historical",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionModerator)(
+				handlers.GetHistoricalStats(s.db.DB()),
+			),
+		),
+	)
+	mux.HandleFunc("GET /api/discord/stats/range",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionModerator)(
+				handlers.GetStatisticsInRange(s.db.DB()),
+			),
+		),
+	)
+
 	// Health check
 	mux.HandleFunc("/health", s.healthHandler)
 
@@ -147,8 +172,28 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Set CORS headers
-		w.Header().Set("Access-Control-Allow-Origin", "*") // Replace "*" with specific origins if needed
+		origin := r.Header.Get("Origin")
+		allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
+
+		// Default allowed origins if not set
+		if allowedOrigins == "" {
+			allowedOrigins = "http://localhost:5173,http://localhost:3000"
+		}
+
+		// Check if origin is allowed
+		origins := strings.Split(allowedOrigins, ",")
+		originAllowed := false
+		for _, allowedOrigin := range origins {
+			if strings.TrimSpace(allowedOrigin) == origin {
+				originAllowed = true
+				break
+			}
+		}
+
+		// Set CORS headers with specific origin if allowed
+		if originAllowed {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+		}
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
 		w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-CSRF-Token, X-User-ID")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
