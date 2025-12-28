@@ -13,7 +13,21 @@
 Webapp:
 Audit Logs nutzen um "Recent" History auf Profil zu machen / ggf auf dem Dashboard
 
+Ideen fürs Dashboard sammeln:
+-
 
+Kalender:
+events Kalender Guests Auswahl von Usern auf dem Discord -> Benachrichtigung über Termin über Discord mit ggf Annehmen/Ablehnen etc.
+Events und Matches Kalender unterschiedliche Categories
+
+Settings:
+Bot Settings die eigentlich über den Command funktionieren würden auslagern - Commands deaktivieren über ENV
+
+Persönliche Settings:
+Discord Benachrichtigungen
+Sprache?
+Timezone?
+Style?
 
 PL Ticket als extra Bereich
 Forum
