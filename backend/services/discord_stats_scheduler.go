@@ -45,12 +45,10 @@ func (s *DiscordStatsScheduler) Stop() {
 
 // schedulerLoop ist die Hauptschleife des Schedulers
 func (s *DiscordStatsScheduler) schedulerLoop() {
-	// Definiere die Zielzeiten: 6:00, 12:00, 18:00, 22:00
-	targetHours := []int{6, 12, 18, 22}
-
+	// Stündliche Ausführung
 	for {
 		now := time.Now()
-		nextRun := s.calculateNextRun(now, targetHours)
+		nextRun := s.calculateNextHourRun(now)
 		duration := nextRun.Sub(now)
 
 		log.Printf("Next statistics collection scheduled for: %s (in %v)", nextRun.Format(time.RFC3339), duration)
@@ -70,56 +68,10 @@ func (s *DiscordStatsScheduler) schedulerLoop() {
 	}
 }
 
-// calculateNextRun berechnet die nächste Ausführungszeit
-func (s *DiscordStatsScheduler) calculateNextRun(now time.Time, targetHours []int) time.Time {
-	// Erstelle Zeit für heute
-	year, month, day := now.Date()
-	location := now.Location()
-
-	// Finde die nächste Zielstunde
-	currentHour := now.Hour()
-	var nextHour int
-	nextDay := false
-
-	for _, hour := range targetHours {
-		if hour > currentHour {
-			nextHour = hour
-			break
-		}
-	}
-
-	// Wenn keine Stunde mehr heute übrig ist, nimm die erste von morgen
-	if nextHour == 0 {
-		nextHour = targetHours[0]
-		nextDay = true
-	}
-
-	// Wenn wir bereits in der aktuellen Zielstunde sind, prüfe die Minuten
-	if nextHour == currentHour && !nextDay {
-		// Prüfe ob wir bereits nach Minute 0 sind
-		if now.Minute() >= 1 {
-			// Gehe zur nächsten Zielstunde
-			found := false
-			for i, hour := range targetHours {
-				if hour == currentHour && i+1 < len(targetHours) {
-					nextHour = targetHours[i+1]
-					found = true
-					break
-				}
-			}
-			if !found {
-				nextHour = targetHours[0]
-				nextDay = true
-			}
-		}
-	}
-
-	// Erstelle die nächste Ausführungszeit
-	nextRun := time.Date(year, month, day, nextHour, 0, 0, 0, location)
-	if nextDay {
-		nextRun = nextRun.Add(24 * time.Hour)
-	}
-
+// calculateNextHourRun berechnet die nächste volle Stunde
+func (s *DiscordStatsScheduler) calculateNextHourRun(now time.Time) time.Time {
+	// Nächste volle Stunde
+	nextRun := now.Truncate(time.Hour).Add(time.Hour)
 	return nextRun
 }
 

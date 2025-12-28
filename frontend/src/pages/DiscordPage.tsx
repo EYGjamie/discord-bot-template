@@ -7,15 +7,18 @@ import {
   TrendingDown, 
   Minus,
   RefreshCw,
-  Calendar
+  Calendar,
+  MessageSquare,
+  Clock
 } from 'lucide-react';
 import { discordStatsService } from '../services/discordStatsService';
-import type { DiscordStatistic } from '../types';
+import type { DiscordStatistic, AdditionalStats } from '../types';
 
-type TimeRange = 'day' | 'week' | 'month';
+type TimeRange = 'day' | 'week' | 'month' | 'total';
 
 const DiscordPage: React.FC = () => {
   const [currentStats, setCurrentStats] = useState<DiscordStatistic | null>(null);
+  const [additionalStats, setAdditionalStats] = useState<AdditionalStats | null>(null);
   const [historicalStats, setHistoricalStats] = useState<DiscordStatistic[]>([]);
   const [timeRange, setTimeRange] = useState<TimeRange>('day');
   const [loading, setLoading] = useState(false);
@@ -31,12 +34,24 @@ const DiscordPage: React.FC = () => {
     
     try {
       // Lade aktuelle Statistiken (und speichere sie)
-      const current = await discordStatsService.getCurrentStats();
-      setCurrentStats(current);
+      const response = await discordStatsService.getCurrentStats();
+      setCurrentStats(response.current_stats);
+      setAdditionalStats({
+        user_max: response.user_max,
+        total_messages: response.total_messages,
+        total_voice_time: response.total_voice_time,
+        avg_voice_time_day: response.avg_voice_time_day,
+      });
 
       // Lade historische Daten für den gewählten Zeitraum
-      const historical = await discordStatsService.getStatsForPeriod(timeRange);
-      setHistoricalStats(historical);
+      if (timeRange !== 'total') {
+        const historical = await discordStatsService.getStatsForPeriod(timeRange);
+        setHistoricalStats(historical);
+      } else {
+        // Lade alle Daten für "Total"
+        const historical = await discordStatsService.getHistoricalStats(1000);
+        setHistoricalStats(historical);
+      }
     } catch (err: any) {
       // Bessere Fehlermeldungen
       if (err.response?.status === 401) {
@@ -52,6 +67,12 @@ const DiscordPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const formatSeconds = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${minutes}m`;
   };
 
   const calculateChange = (current: number, previous: number) => {
@@ -99,10 +120,23 @@ const DiscordPage: React.FC = () => {
     );
   };
 
-  const renderLineChart = (data: DiscordStatistic[], valueKey: keyof DiscordStatistic, title: string) => {
+  const renderLineChart = (
+    data: DiscordStatistic[], 
+    valueKey: keyof DiscordStatistic, 
+    title: string,
+    convertToHours: boolean = false
+  ) => {
     if (data.length === 0) return null;
 
-    const values = data.map(stat => typeof stat[valueKey] === 'number' ? stat[valueKey] as number : 0).reverse();
+    const values = data.map(stat => {
+      let value = typeof stat[valueKey] === 'number' ? stat[valueKey] as number : 0;
+      // Konvertiere Sekunden in Stunden für Voice Time
+      if (convertToHours) {
+        value = value / 3600;
+      }
+      return value;
+    }).reverse();
+    
     const max = Math.max(...values);
     const min = Math.min(...values);
     const range = max - min || 1;
@@ -130,8 +164,12 @@ const DiscordPage: React.FC = () => {
               points={`0,100 ${points} 100,100`}
             />
           </svg>
-          <div className="absolute top-0 right-0 text-xs text-gray-500">{max.toLocaleString()}</div>
-          <div className="absolute bottom-0 right-0 text-xs text-gray-500">{min.toLocaleString()}</div>
+          <div className="absolute top-0 right-0 text-xs text-gray-500">
+            {convertToHours ? `${max.toFixed(0)}h` : max.toLocaleString()}
+          </div>
+          <div className="absolute bottom-0 right-0 text-xs text-gray-500">
+            {convertToHours ? `${min.toFixed(0)}h` : min.toLocaleString()}
+          </div>
         </div>
         <div className="flex justify-between mt-2 text-xs text-gray-500">
           <span>{new Date(data[data.length - 1]?.timestamp || '').toLocaleDateString('de-DE', { day: '2-digit', month: 'short' })}</span>
@@ -214,10 +252,21 @@ const DiscordPage: React.FC = () => {
           <Calendar size={16} className="inline mr-2" />
           30 Tage
         </button>
+        <button
+          onClick={() => setTimeRange('total')}
+          className={`px-4 py-2 rounded-lg transition-colors ${
+            timeRange === 'total'
+              ? 'bg-blue-600 text-white'
+              : 'bg-[#1a1f2e] text-gray-400 hover:bg-[#252b3d] border border-gray-800'
+          }`}
+        >
+          <Calendar size={16} className="inline mr-2" />
+          Gesamt
+        </button>
       </div>
 
       {/* Aktuelle Statistiken - Cards */}
-      {currentStats && (
+      {currentStats && additionalStats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {renderStatCard(
             'Mitglieder',
@@ -225,11 +274,15 @@ const DiscordPage: React.FC = () => {
             <Users size={24} />,
             previousStats?.member_count
           )}
-          {currentStats.role_id && renderStatCard(
-            'Mitglieder mit Rolle',
-            currentStats.role_member_count,
-            <Users size={24} />,
-            previousStats?.role_member_count
+          {renderStatCard(
+            'User Max',
+            additionalStats.user_max,
+            <Users size={24} />
+          )}
+          {renderStatCard(
+            'Total Messages',
+            additionalStats.total_messages,
+            <MessageSquare size={24} />
           )}
           {renderStatCard(
             'Channels',
@@ -237,6 +290,26 @@ const DiscordPage: React.FC = () => {
             <Hash size={24} />,
             previousStats?.total_channels
           )}
+        </div>
+      )}
+
+      {/* Voice Statistiken */}
+      {additionalStats && currentStats && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="bg-[#1a1f2e] rounded-lg shadow-lg p-6 border border-gray-800">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-gray-400 text-sm font-medium">Total Voice Time</h3>
+              <div className="text-blue-400"><Clock size={24} /></div>
+            </div>
+            <div className="text-3xl font-bold text-white">{formatSeconds(additionalStats.total_voice_time)}</div>
+          </div>
+          <div className="bg-[#1a1f2e] rounded-lg shadow-lg p-6 border border-gray-800">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-gray-400 text-sm font-medium">Ø Voice Time / Tag</h3>
+              <div className="text-blue-400"><Clock size={24} /></div>
+            </div>
+            <div className="text-3xl font-bold text-white">{formatSeconds(additionalStats.avg_voice_time_day)}</div>
+          </div>
           {renderStatCard(
             'User in Voice',
             currentStats.voice_user_count,
@@ -271,9 +344,8 @@ const DiscordPage: React.FC = () => {
       {historicalStats.length > 1 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {renderLineChart(historicalStats, 'member_count', 'Mitglieder-Entwicklung')}
-          {renderLineChart(historicalStats, 'voice_user_count', 'Voice-User-Entwicklung')}
+          {renderLineChart(historicalStats, 'total_voice_time', 'Voice-Time-Entwicklung (Stunden)', true)}
           {currentStats?.role_id && renderLineChart(historicalStats, 'role_member_count', 'Rollen-Mitglieder-Entwicklung')}
-          {renderLineChart(historicalStats, 'total_channels', 'Channel-Entwicklung')}
         </div>
       )}
 

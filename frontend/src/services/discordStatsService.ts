@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { DiscordStatistic } from '../types';
+import type { DiscordStatistic, DiscordStatsResponse } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 const BOT_API_URL = import.meta.env.VITE_BOT_API_URL || 'http://localhost:8090';
@@ -15,8 +15,8 @@ const getAuthHeaders = () => {
 
 export const discordStatsService = {
   // Holt aktuelle Statistiken und speichert sie (triggert Bot API Calls)
-  async getCurrentStats(): Promise<DiscordStatistic> {
-    const response = await axios.get<DiscordStatistic>(
+  async getCurrentStats(): Promise<DiscordStatsResponse> {
+    const response = await axios.get<DiscordStatsResponse>(
       `${API_URL}/api/discord/stats/current`,
       { headers: getAuthHeaders() }
     );

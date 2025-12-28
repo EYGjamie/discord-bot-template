@@ -203,9 +203,25 @@ export interface DiscordStatistic {
   category_channels: number;
   voice_user_count: number;
   active_voice_channels: number;
+  total_voice_time: number;
   timestamp: string;
   source: string;
   created_at: string;
+}
+
+export interface AdditionalStats {
+  user_max: number;
+  total_messages: number;
+  total_voice_time: number;
+  avg_voice_time_day: number;
+}
+
+export interface DiscordStatsResponse {
+  current_stats: DiscordStatistic;
+  user_max: number;
+  total_messages: number;
+  total_voice_time: number;
+  avg_voice_time_day: number;
 }
 
 export interface StatisticChange {

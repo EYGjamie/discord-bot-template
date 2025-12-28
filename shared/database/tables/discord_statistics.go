@@ -19,6 +19,7 @@ type DiscordStatistic struct {
 	CategoryChannels    int       `json:"category_channels"`
 	VoiceUserCount      int       `json:"voice_user_count"`      // Anzahl User in Voice
 	ActiveVoiceChannels int       `json:"active_voice_channels"` // Anzahl aktiver Voice Channels
+	TotalVoiceTime      int64     `json:"total_voice_time"`      // Gesamte Voice Time in Sekunden bis zu diesem Zeitpunkt
 	Timestamp           time.Time `json:"timestamp"`
 	Source              string    `json:"source"` // "manual" oder "scheduled"
 	CreatedAt           time.Time `json:"created_at"`
@@ -39,6 +40,7 @@ func CreateDiscordStatisticsTable(db *sql.DB) error {
 			category_channels INTEGER NOT NULL DEFAULT 0,
 			voice_user_count INTEGER NOT NULL DEFAULT 0,
 			active_voice_channels INTEGER NOT NULL DEFAULT 0,
+			total_voice_time BIGINT NOT NULL DEFAULT 0,
 			timestamp TIMESTAMP NOT NULL,
 			source VARCHAR(20) NOT NULL DEFAULT 'manual',
 			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -48,6 +50,9 @@ func CreateDiscordStatisticsTable(db *sql.DB) error {
 		CREATE INDEX IF NOT EXISTS idx_discord_stats_timestamp ON discord_statistics(timestamp);
 		CREATE INDEX IF NOT EXISTS idx_discord_stats_source ON discord_statistics(source);
 		CREATE INDEX IF NOT EXISTS idx_discord_stats_guild_timestamp ON discord_statistics(guild_id, timestamp DESC);
+		
+		-- Migration: Füge total_voice_time hinzu falls noch nicht vorhanden
+		ALTER TABLE discord_statistics ADD COLUMN IF NOT EXISTS total_voice_time BIGINT NOT NULL DEFAULT 0;
 	`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -67,8 +72,8 @@ func SaveDiscordStatistic(db *sql.DB, stat *DiscordStatistic) error {
 		INSERT INTO discord_statistics (
 			guild_id, member_count, role_member_count, role_id,
 			total_channels, text_channels, voice_channels, category_channels,
-			voice_user_count, active_voice_channels, timestamp, source
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			voice_user_count, active_voice_channels, total_voice_time, timestamp, source
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		RETURNING id, created_at
 	`
 
@@ -78,7 +83,7 @@ func SaveDiscordStatistic(db *sql.DB, stat *DiscordStatistic) error {
 	err := db.QueryRowContext(ctx, query,
 		stat.GuildID, stat.MemberCount, stat.RoleMemberCount, stat.RoleID,
 		stat.TotalChannels, stat.TextChannels, stat.VoiceChannels, stat.CategoryChannels,
-		stat.VoiceUserCount, stat.ActiveVoiceChannels, stat.Timestamp, stat.Source,
+		stat.VoiceUserCount, stat.ActiveVoiceChannels, stat.TotalVoiceTime, stat.Timestamp, stat.Source,
 	).Scan(&stat.ID, &stat.CreatedAt)
 
 	return err
@@ -90,7 +95,7 @@ func GetDiscordStatistics(db *sql.DB, guildID string, since *time.Time, limit in
 		SELECT 
 			id, guild_id, member_count, role_member_count, role_id,
 			total_channels, text_channels, voice_channels, category_channels,
-			voice_user_count, active_voice_channels, timestamp, source, created_at
+			voice_user_count, active_voice_channels, total_voice_time, timestamp, source, created_at
 		FROM discord_statistics
 		WHERE guild_id = $1
 	`
@@ -128,7 +133,7 @@ func GetDiscordStatistics(db *sql.DB, guildID string, since *time.Time, limit in
 		err := rows.Scan(
 			&stat.ID, &stat.GuildID, &stat.MemberCount, &stat.RoleMemberCount, &stat.RoleID,
 			&stat.TotalChannels, &stat.TextChannels, &stat.VoiceChannels, &stat.CategoryChannels,
-			&stat.VoiceUserCount, &stat.ActiveVoiceChannels, &stat.Timestamp, &stat.Source, &stat.CreatedAt,
+			&stat.VoiceUserCount, &stat.ActiveVoiceChannels, &stat.TotalVoiceTime, &stat.Timestamp, &stat.Source, &stat.CreatedAt,
 		)
 		if err != nil {
 			return nil, err
@@ -145,7 +150,7 @@ func GetLatestDiscordStatistic(db *sql.DB, guildID string) (*DiscordStatistic, e
 		SELECT 
 			id, guild_id, member_count, role_member_count, role_id,
 			total_channels, text_channels, voice_channels, category_channels,
-			voice_user_count, active_voice_channels, timestamp, source, created_at
+		       voice_user_count, active_voice_channels, total_voice_time, timestamp, source, created_at
 		FROM discord_statistics
 		WHERE guild_id = $1
 		ORDER BY timestamp DESC
@@ -159,7 +164,7 @@ func GetLatestDiscordStatistic(db *sql.DB, guildID string) (*DiscordStatistic, e
 	err := db.QueryRowContext(ctx, query, guildID).Scan(
 		&stat.ID, &stat.GuildID, &stat.MemberCount, &stat.RoleMemberCount, &stat.RoleID,
 		&stat.TotalChannels, &stat.TextChannels, &stat.VoiceChannels, &stat.CategoryChannels,
-		&stat.VoiceUserCount, &stat.ActiveVoiceChannels, &stat.Timestamp, &stat.Source, &stat.CreatedAt,
+		&stat.VoiceUserCount, &stat.ActiveVoiceChannels, &stat.TotalVoiceTime, &stat.Timestamp, &stat.Source, &stat.CreatedAt,
 	)
 
 	if err == sql.ErrNoRows {
@@ -179,7 +184,7 @@ func GetStatisticsInTimeRange(db *sql.DB, guildID string, startTime, endTime tim
 		SELECT 
 			id, guild_id, member_count, role_member_count, role_id,
 			total_channels, text_channels, voice_channels, category_channels,
-			voice_user_count, active_voice_channels, timestamp, source, created_at
+			voice_user_count, active_voice_channels, total_voice_time, timestamp, source, created_at
 		FROM discord_statistics
 		WHERE guild_id = $1 AND timestamp BETWEEN $2 AND $3
 		ORDER BY timestamp ASC
@@ -201,7 +206,7 @@ func GetStatisticsInTimeRange(db *sql.DB, guildID string, startTime, endTime tim
 		err := rows.Scan(
 			&stat.ID, &stat.GuildID, &stat.MemberCount, &stat.RoleMemberCount, &stat.RoleID,
 			&stat.TotalChannels, &stat.TextChannels, &stat.VoiceChannels, &stat.CategoryChannels,
-			&stat.VoiceUserCount, &stat.ActiveVoiceChannels, &stat.Timestamp, &stat.Source, &stat.CreatedAt,
+			&stat.VoiceUserCount, &stat.ActiveVoiceChannels, &stat.TotalVoiceTime, &stat.Timestamp, &stat.Source, &stat.CreatedAt,
 		)
 		if err != nil {
 			return nil, err

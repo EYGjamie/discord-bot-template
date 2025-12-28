@@ -217,13 +217,28 @@ func (h *DiscordStatsHandler) FetchAndSaveStatistics(source string) (*tables.Dis
 		stat.ActiveVoiceChannels = voiceUserCount.ActiveVoiceChannels
 	}
 
+	// Berechne Total Voice Time bis jetzt
+	var totalVoiceTime sql.NullInt64
+	err := h.db.QueryRow(`
+		SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (COALESCE(left_at, NOW()) - joined_at))), 0)
+		FROM user_voice_logs
+	`).Scan(&totalVoiceTime)
+	if err != nil {
+		log.Printf("Error getting total voice time: %v", err)
+		stat.TotalVoiceTime = 0
+	} else if totalVoiceTime.Valid {
+		stat.TotalVoiceTime = int64(totalVoiceTime.Int64)
+	} else {
+		stat.TotalVoiceTime = 0
+	}
+
 	// Speichere in Datenbank
 	if err := tables.SaveDiscordStatistic(h.db, stat); err != nil {
 		return nil, fmt.Errorf("failed to save statistics: %v", err)
 	}
 
-	log.Printf("Discord statistics saved: source=%s, members=%d, channels=%d, voice_users=%d",
-		source, stat.MemberCount, stat.TotalChannels, stat.VoiceUserCount)
+	log.Printf("Discord statistics saved: source=%s, members=%d, channels=%d, voice_users=%d, voice_time=%d",
+		source, stat.MemberCount, stat.TotalChannels, stat.VoiceUserCount, stat.TotalVoiceTime)
 
 	return stat, nil
 }
@@ -239,9 +254,87 @@ func GetCurrentStats(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		// Hole zusätzliche Statistiken aus der Datenbank
+		additionalStats := getAdditionalStats(db)
+
+		// Kombiniere die Stats
+		response := map[string]interface{}{
+			"current_stats":      stat,
+			"user_max":           additionalStats["user_max"],
+			"total_messages":     additionalStats["total_messages"],
+			"total_voice_time":   additionalStats["total_voice_time"],
+			"avg_voice_time_day": additionalStats["avg_voice_time_day"],
+		}
+
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(stat)
+		json.NewEncoder(w).Encode(response)
 	}
+}
+
+// getAdditionalStats holt zusätzliche Statistiken aus der Datenbank
+func getAdditionalStats(db *sql.DB) map[string]interface{} {
+	stats := make(map[string]interface{})
+
+	// User Max (höchste Anzahl an Usern in der users Tabelle zu einem Zeitpunkt)
+	var userMax int
+	err := db.QueryRow(`
+		SELECT COUNT(*) FROM users WHERE joined_at IS NOT NULL
+	`).Scan(&userMax)
+	if err != nil {
+		log.Printf("Error getting user max: %v", err)
+		userMax = 0
+	}
+	stats["user_max"] = userMax
+
+	// Total Messages
+	var totalMessages int
+	err = db.QueryRow(`
+		SELECT COUNT(*) FROM user_messages_logs
+	`).Scan(&totalMessages)
+	if err != nil {
+		log.Printf("Error getting total messages: %v", err)
+		totalMessages = 0
+	}
+	stats["total_messages"] = totalMessages
+
+	// Total Voice Time (in Sekunden)
+	var totalVoiceTime sql.NullInt64
+	err = db.QueryRow(`
+		SELECT SUM(EXTRACT(EPOCH FROM (left_at - joined_at))) 
+		FROM user_voice_logs 
+		WHERE left_at IS NOT NULL
+	`).Scan(&totalVoiceTime)
+	if err != nil {
+		log.Printf("Error getting total voice time: %v", err)
+		totalVoiceTime.Int64 = 0
+	}
+	if !totalVoiceTime.Valid {
+		totalVoiceTime.Int64 = 0
+	}
+	stats["total_voice_time"] = totalVoiceTime.Int64
+
+	// Durchschnittliche Voice Time pro Tag (letzte 30 Tage)
+	var avgVoiceTimeDay sql.NullFloat64
+	err = db.QueryRow(`
+		SELECT AVG(daily_time) FROM (
+			SELECT 
+				DATE(joined_at) as day,
+				SUM(EXTRACT(EPOCH FROM (COALESCE(left_at, NOW()) - joined_at))) as daily_time
+			FROM user_voice_logs
+			WHERE joined_at >= NOW() - INTERVAL '30 days'
+			GROUP BY DATE(joined_at)
+		) as daily_stats
+	`).Scan(&avgVoiceTimeDay)
+	if err != nil {
+		log.Printf("Error getting avg voice time: %v", err)
+		avgVoiceTimeDay.Float64 = 0
+	}
+	if !avgVoiceTimeDay.Valid {
+		avgVoiceTimeDay.Float64 = 0
+	}
+	stats["avg_voice_time_day"] = int64(avgVoiceTimeDay.Float64)
+
+	return stats
 }
 
 // GetHistoricalStats HTTP Handler - Gibt historische Statistiken zurück
