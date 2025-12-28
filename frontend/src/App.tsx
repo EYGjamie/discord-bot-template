@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage';
 import MembersPage from './pages/MembersPage';
 import UserProfilePage from './pages/UserProfilePage';
 import EventsPage from './pages/EventsPage';
+import MatchesPage from './pages/MatchesPage';
 import DashboardLayout from './components/layout/DashboardLayout';
 import { ProtectedRoute } from './components/auth/PermissionGate';
 
@@ -72,7 +73,7 @@ function App() {
         {/* Public routes for guild members */}
         <Route path="/events" element={<AuthProtectedRoute><DashboardLayout><EventsPage /></DashboardLayout></AuthProtectedRoute>} />
         <Route path="/tasks" element={<AuthProtectedRoute><DashboardLayout><div className="p-6 text-white">Tasks Page</div></DashboardLayout></AuthProtectedRoute>} />
-        <Route path="/matches" element={<AuthProtectedRoute><DashboardLayout><div className="p-6 text-white">Matches Page</div></DashboardLayout></AuthProtectedRoute>} />
+        <Route path="/matches" element={<AuthProtectedRoute><DashboardLayout><MatchesPage /></DashboardLayout></AuthProtectedRoute>} />
         <Route path="/discord" element={<AuthProtectedRoute><DashboardLayout><div className="p-6 text-white">Discord Page</div></DashboardLayout></AuthProtectedRoute>} />
         <Route path="/notifications" element={<AuthProtectedRoute><DashboardLayout><div className="p-6 text-white">Notifications Page</div></DashboardLayout></AuthProtectedRoute>} />
         

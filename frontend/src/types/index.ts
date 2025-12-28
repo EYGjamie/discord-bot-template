@@ -157,3 +157,36 @@ export interface CreateEventRequest {
   location: string;
   guests: string;
 }
+
+export interface CalendarMatch {
+  id: number;
+  guild_id: string;
+  title: string;
+  description: string;
+  start_date: string; // YYYY-MM-DD
+  end_date: string;   // YYYY-MM-DD
+  start_time: string; // HH:MM
+  end_time: string;   // HH:MM
+  is_all_day: boolean; // Ganztägiges Match
+  color: string;      // Hex color
+  location: string;
+  guests: string;     // Comma-separated list of guest names
+  created_by: string;
+  creator_name: string;
+  creator_avatar: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateMatchRequest {
+  title: string;
+  description: string;
+  start_date: string;
+  end_date: string;
+  start_time: string;
+  end_time: string;
+  is_all_day: boolean;
+  color: string;
+  location: string;
+  guests: string;
+}

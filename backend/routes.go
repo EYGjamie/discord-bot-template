@@ -110,6 +110,13 @@ func (s *Server) RegisterRoutes() http.Handler {
 		),
 	)
 
+	// Match routes (protected - all members can access)
+	mux.HandleFunc("GET /api/matches", handlers.GetMatches(s.db.DB()))
+	mux.HandleFunc("GET /api/matches/{id}", handlers.GetMatchByID(s.db.DB()))
+	mux.HandleFunc("POST /api/matches", handlers.CreateMatch(s.db.DB()))
+	mux.HandleFunc("PUT /api/matches/{id}", handlers.UpdateMatch(s.db.DB()))
+	mux.HandleFunc("DELETE /api/matches/{id}", handlers.DeleteMatch(s.db.DB()))
+
 	// Audit logs routes (protected - admin only)
 	mux.HandleFunc("GET /api/audit-logs",
 		middleware.RequireAuth(

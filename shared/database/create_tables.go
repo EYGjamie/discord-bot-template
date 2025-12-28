@@ -146,6 +146,13 @@ func InitializeTables(db *sql.DB) error {
 	}
 	log.Println("Event Categories table initialized successfully")
 
+	// Erstelle Matches-Tabelle
+	if err := tables.CreateMatchesTable(db); err != nil {
+		log.Printf("Error creating matches table: %v", err)
+		return err
+	}
+	log.Println("Matches table initialized successfully")
+
 	log.Println("All database tables initialized successfully")
 	return nil
 }

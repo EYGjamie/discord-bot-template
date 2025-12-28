@@ -131,4 +131,45 @@ export const api = {
         },
       }).then(res => res.json()),
   },
+
+  matches: {
+    getMatches: (params?: { month?: number; year?: number }) => {
+      const query = new URLSearchParams();
+      if (params?.month) query.set('month', params.month.toString());
+      if (params?.year) query.set('year', params.year.toString());
+      
+      return fetch(`${API_BASE_URL}/api/matches?${query.toString()}`).then(res => res.json());
+    },
+    
+    getMatchById: (id: number) => 
+      fetch(`${API_BASE_URL}/api/matches/${id}`).then(res => res.json()),
+    
+    createMatch: (data: { title: string; description: string; start_date: string; end_date: string; start_time: string; end_time: string; color: string; location: string; guests: string }) =>
+      fetch(`${API_BASE_URL}/api/matches`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-User-ID': getUserId(),
+        },
+        body: JSON.stringify(data),
+      }).then(res => res.json()),
+    
+    updateMatch: (id: number, data: { title: string; description: string; start_date: string; end_date: string; start_time: string; end_time: string; color: string; location: string; guests: string }) =>
+      fetch(`${API_BASE_URL}/api/matches/${id}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-User-ID': getUserId(),
+        },
+        body: JSON.stringify(data),
+      }).then(res => res.json()),
+    
+    deleteMatch: (id: number) =>
+      fetch(`${API_BASE_URL}/api/matches/${id}`, {
+        method: 'DELETE',
+        headers: { 
+          'X-User-ID': getUserId(),
+        },
+      }).then(res => res.json()),
+  },
 };
