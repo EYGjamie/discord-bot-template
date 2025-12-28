@@ -83,26 +83,26 @@ export default function MembersPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6 pt-16 lg:pt-4 sm:pt-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-white">Members</h1>
-        <p className="text-gray-400 mt-1">
+        <h1 className="text-2xl sm:text-3xl font-bold text-white">Members</h1>
+        <p className="text-gray-400 mt-1 text-sm sm:text-base">
           Showing {startIndex + 1}-{endIndex} of {total} members
         </p>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col gap-3 sm:gap-4">
         {/* Search */}
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
           <input
             type="text"
             placeholder="Search by name..."
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
-            className="w-full pl-10 pr-10 py-2 bg-[#1a1f2e] border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-cyan-500"
+            className="w-full pl-9 sm:pl-10 pr-10 py-2 sm:py-2.5 bg-[#1a1f2e] border border-gray-700 rounded-lg text-white text-sm sm:text-base placeholder-gray-400 focus:outline-none focus:border-cyan-500"
           />
           {searchInput && (
             <button
@@ -115,15 +115,15 @@ export default function MembersPage() {
         </div>
 
         {/* Role Filter */}
-        <div className="relative min-w-[200px]">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <div className="relative">
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
           <select
             value={selectedRole}
             onChange={e => {
               setSelectedRole(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full pl-10 pr-10 py-2 bg-[#1a1f2e] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-cyan-500 appearance-none cursor-pointer"
+            className="w-full pl-9 sm:pl-10 pr-10 py-2 sm:py-2.5 bg-[#1a1f2e] border border-gray-700 rounded-lg text-white text-sm sm:text-base focus:outline-none focus:border-cyan-500 appearance-none cursor-pointer"
           >
             <option value="all">All Roles</option>
             {uniqueRoles.map(role => (
@@ -145,11 +145,11 @@ export default function MembersPage() {
 
       {/* Members Grid */}
       {members.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">
+        <div className="text-center py-12 text-gray-400 text-sm sm:text-base">
           No members found matching your filters.
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3 sm:gap-4">
           {members.map(member => (
             <UserCard key={member.id} member={member} />
           ))}
@@ -158,16 +158,16 @@ export default function MembersPage() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2">
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-2">
           <button
             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
             disabled={currentPage === 1}
-            className="px-4 py-2 bg-[#1a1f2e] border border-gray-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:border-cyan-500 transition-colors"
+            className="w-full sm:w-auto px-4 py-2 bg-[#1a1f2e] border border-gray-700 rounded-lg text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:border-cyan-500 transition-colors"
           >
             Previous
           </button>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 w-full sm:w-auto justify-center">
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               let pageNum;
               if (totalPages <= 5) {
@@ -184,7 +184,7 @@ export default function MembersPage() {
                 <button
                   key={pageNum}
                   onClick={() => setCurrentPage(pageNum)}
-                  className={`w-10 h-10 rounded-lg transition-colors ${
+                  className={`w-10 h-10 flex-shrink-0 rounded-lg transition-colors text-sm ${
                     currentPage === pageNum
                       ? 'bg-cyan-500 text-white'
                       : 'bg-[#1a1f2e] border border-gray-700 text-white hover:border-cyan-500'
@@ -199,7 +199,7 @@ export default function MembersPage() {
           <button
             onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
             disabled={currentPage === totalPages}
-            className="px-4 py-2 bg-[#1a1f2e] border border-gray-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:border-cyan-500 transition-colors"
+            className="w-full sm:w-auto px-4 py-2 bg-[#1a1f2e] border border-gray-700 rounded-lg text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:border-cyan-500 transition-colors"
           >
             Next
           </button>

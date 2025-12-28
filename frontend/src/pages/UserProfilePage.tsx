@@ -187,46 +187,46 @@ export default function UserProfilePage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6 pt-16 lg:pt-4 sm:pt-6">
       {/* Back Button */}
       <button
         onClick={() => navigate('/members')}
-        className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors px-4 py-2 bg-[#1a1f2e] rounded-lg border border-gray-800 hover:border-cyan-500"
+        className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors px-3 sm:px-4 py-2 bg-[#1a1f2e] rounded-lg border border-gray-800 hover:border-cyan-500 text-sm sm:text-base"
       >
-        <ArrowLeft className="w-5 h-5" />
-        Back to Members
+        <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+        <span>Back to Members</span>
       </button>
 
       {/* Profile Header */}
-      <div className="bg-[#1a1f2e] rounded-lg p-6 border border-gray-800">
-        <div className="flex flex-col md:flex-row gap-6">
+      <div className="bg-[#1a1f2e] rounded-lg p-4 sm:p-6 border border-gray-800">
+        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
           {/* Avatar */}
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 flex justify-center sm:block">
             <img
               src={getAvatarUrl()}
               alt={member.display_name}
-              className="w-32 h-32 rounded-full border-4 border-gray-700"
+              className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-gray-700"
             />
           </div>
 
           {/* Basic Info */}
-          <div className="flex-1 space-y-4">
-            <div>
-              <h1 className="text-3xl font-bold text-white">
+          <div className="flex-1 space-y-3 sm:space-y-4">
+            <div className="text-center sm:text-left">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">
                 {member.display_name || member.name}
               </h1>
               {member.nick && member.nick !== member.display_name && (
-                <p className="text-gray-400 mt-1">@{member.name}</p>
+                <p className="text-gray-400 mt-1 text-sm sm:text-base">@{member.name}</p>
               )}
-              <p className="text-gray-500 text-sm mt-1">{member.mention}</p>
+              <p className="text-gray-500 text-xs sm:text-sm mt-1">{member.mention}</p>
             </div>
 
             {/* Roles */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center sm:justify-start">
               {stats.roles.map(role => (
                 <div
                   key={role.id}
-                  className="px-3 py-1 rounded-full text-sm font-medium border"
+                  className="px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-medium border"
                   style={{
                     backgroundColor: role.color ? `${role.color}15` : '#4b556315',
                     color: role.color || '#9ca3af',
@@ -239,12 +239,12 @@ export default function UserProfilePage() {
             </div>
 
             {/* Dates */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
               <div className="flex items-center gap-2 text-gray-400">
-                <Calendar className="w-4 h-4" />
+                <Calendar className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                 <div>
-                  <p className="text-xs">Account Created</p>
-                  <p className="text-white text-sm">{formatDate(member.created_at)}</p>
+                  <p className="text-[10px] sm:text-xs">Account Created</p>
+                  <p className="text-white text-xs sm:text-sm">{formatDate(member.created_at)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 text-gray-400">

@@ -299,28 +299,28 @@ export default function EventsPage() {
   const upcomingEvents = getUpcomingEvents();
 
   return (
-    <div className="p-6">
-      <div className="mb-6 flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-white">Events Calendar</h1>
+    <div className="p-4 sm:p-6 pt-16 lg:pt-4 sm:pt-6">
+      <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <h1 className="text-2xl sm:text-3xl font-bold text-white">Events Calendar</h1>
         <button
           onClick={handleCreateEvent}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm sm:text-base w-full sm:w-auto justify-center"
         >
-          <Plus size={20} />
-          Create Event
+          <Plus size={18} className="sm:w-5 sm:h-5" />
+          <span>Create Event</span>
         </button>
       </div>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400">
+        <div className="mb-4 p-3 sm:p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm sm:text-base">
           {error}
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Calendar Section - größer gemacht */}
-        <div className="lg:col-span-3">
-          <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 sm:gap-6">
+        {/* Calendar Section */}
+        <div className="xl:col-span-3">
+          <div className="bg-gray-800 rounded-lg p-3 sm:p-6 shadow-lg">
             <Calendar
               onChange={handleDateChange}
               value={selectedDate}
@@ -330,36 +330,36 @@ export default function EventsPage() {
             />
             
             {/* Compact Color Legend */}
-            <div className="mt-6 pt-4 border-t border-gray-700">
+            <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-gray-700">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-white font-semibold text-sm">Event Categories</h3>
+                <h3 className="text-white font-semibold text-xs sm:text-sm">Event Categories</h3>
                 {isAdmin && (
                   <button
                     onClick={() => setShowCategoryManager(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-sm"
+                    className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-xs sm:text-sm"
                     title="Manage Categories"
                   >
-                    <Settings size={16} className="text-blue-400" />
-                    <span className="text-gray-300">Manage</span>
+                    <Settings size={14} className="sm:w-4 sm:h-4 text-blue-400" />
+                    <span className="text-gray-300 hidden sm:inline">Manage</span>
                   </button>
                 )}
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 {categories.map((category) => (
                   <button
                     key={category.id}
                     onClick={() => toggleColor(category.color)}
-                    className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs transition-all ${
+                    className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs transition-all ${
                       selectedColors.has(category.color)
                         ? 'bg-gray-700 text-white'
                         : 'bg-gray-750 text-gray-500 opacity-60'
                     }`}
                   >
                     <div
-                      className="w-2.5 h-2.5 rounded-full"
+                      className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full flex-shrink-0"
                       style={{ backgroundColor: category.color }}
                     />
-                    <span>{category.name}</span>
+                    <span className="truncate">{category.name}</span>
                   </button>
                 ))}
               </div>
@@ -368,28 +368,28 @@ export default function EventsPage() {
         </div>
 
         {/* Events List Section */}
-        <div className="lg:col-span-2">
-          <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
-            <div className="flex items-center gap-3 mb-4">
-              <CalendarIcon className="text-blue-400" size={24} />
-              <h2 className="text-xl font-semibold text-white">
+        <div className="xl:col-span-2">
+          <div className="bg-gray-800 rounded-lg p-3 sm:p-6 shadow-lg">
+            <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+              <CalendarIcon className="text-blue-400" size={20} />
+              <h2 className="text-lg sm:text-xl font-semibold text-white">
                 {format(selectedDate, 'MMM d, yyyy')}
               </h2>
             </div>
 
             {loading ? (
-              <div className="text-gray-400 text-center py-8">Loading events...</div>
+              <div className="text-gray-400 text-center py-8 text-sm sm:text-base">Loading events...</div>
             ) : filteredEvents.length === 0 ? (
-              <div className="text-gray-400 text-center py-8">
+              <div className="text-gray-400 text-center py-8 text-sm sm:text-base">
                 No events scheduled for this day.
               </div>
             ) : (
-              <div className="space-y-3 max-h-[600px] overflow-y-auto">
+              <div className="space-y-3 max-h-[500px] sm:max-h-[600px] overflow-y-auto">
                 {filteredEvents.map((event) => (
                   <div
                     key={event.id}
                     onClick={() => setSelectedEvent(event)}
-                    className={`p-4 rounded-lg border-l-4 cursor-pointer transition-all shadow-md ${
+                    className={`p-3 sm:p-4 rounded-lg border-l-4 cursor-pointer transition-all shadow-md ${
                       selectedEvent?.id === event.id
                         ? 'bg-gray-700 border-blue-500 shadow-lg shadow-blue-500/20'
                         : 'bg-gray-700/80 hover:bg-gray-700 border-gray-500 hover:shadow-lg'
@@ -397,7 +397,7 @@ export default function EventsPage() {
                     style={{ borderLeftColor: event.color }}
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-white font-semibold text-lg">{event.title}</h3>
+                      <h3 className="text-white font-semibold text-sm sm:text-lg">{event.title}</h3>
                       {canEditEvent(event) && (
                         <div className="flex gap-2">
                           <button

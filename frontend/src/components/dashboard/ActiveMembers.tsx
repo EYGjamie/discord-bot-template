@@ -18,22 +18,22 @@ const roleColors: Record<string, string> = {
 
 export default function ActiveMembers() {
   return (
-    <div className="bg-[#1a1f2e] rounded-lg p-6 border border-gray-800">
-      <h2 className="text-white text-lg font-semibold mb-4">Active Members</h2>
+    <div className="bg-[#1a1f2e] rounded-lg p-4 sm:p-6 border border-gray-800">
+      <h2 className="text-white text-base sm:text-lg font-semibold mb-3 sm:mb-4">Active Members</h2>
       <div className="space-y-3">
         {mockMembers.map((member) => (
-          <div key={member.id} className="flex items-center gap-3">
-            <div className="relative">
-              <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-white text-sm font-medium">
+          <div key={member.id} className="flex items-center gap-2 sm:gap-3">
+            <div className="relative flex-shrink-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gray-700 flex items-center justify-center text-white text-xs sm:text-sm font-medium">
                 {member.display_name.split(' ').map(n => n[0]).join('')}
               </div>
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#1a1f2e]" />
+              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full border-2 border-[#1a1f2e]" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-white font-medium text-sm">{member.display_name}</p>
-              <p className="text-gray-400 text-xs">{member.top_role_name}</p>
+              <p className="text-white font-medium text-xs sm:text-sm truncate">{member.display_name}</p>
+              <p className="text-gray-400 text-xs truncate">{member.top_role_name}</p>
             </div>
-            <span className={`px-2 py-1 text-xs font-medium rounded border ${roleColors[member.top_role_name || ''] || 'bg-gray-500/10 text-gray-400 border-gray-500/20'}`}>
+            <span className={`hidden sm:flex px-2 py-1 text-xs font-medium rounded border ${roleColors[member.top_role_name || ''] || 'bg-gray-500/10 text-gray-400 border-gray-500/20'} flex-shrink-0`}>
               {member.top_role_name?.split(' ')[0]}
             </span>
           </div>

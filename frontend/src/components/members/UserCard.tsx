@@ -15,36 +15,36 @@ export default function UserCard({ member }: UserCardProps) {
   return (
     <Link
       to={`/members/${member.id}`}
-      className="bg-[#1a1f2e] rounded-lg p-4 border border-gray-800 hover:border-cyan-500/50 transition-all hover:scale-105 flex flex-col items-center gap-3"
+      className="bg-[#1a1f2e] rounded-lg p-3 sm:p-4 border border-gray-800 hover:border-cyan-500/50 transition-all hover:scale-105 flex flex-col items-center gap-2 sm:gap-3"
     >
       {/* Avatar */}
       <div className="relative">
         <img
           src={getAvatarUrl()}
           alt={member.display_name}
-          className="w-16 h-16 rounded-full border-2 border-gray-700"
+          className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 border-gray-700"
         />
         {member.bot && (
-          <div className="absolute -bottom-1 -right-1 bg-cyan-500 text-white text-xs px-1.5 py-0.5 rounded font-bold">
+          <div className="absolute -bottom-1 -right-1 bg-cyan-500 text-white text-[10px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded font-bold">
             BOT
           </div>
         )}
       </div>
 
       {/* Display Name */}
-      <div className="text-center">
-        <h3 className="text-white font-medium truncate w-full">
+      <div className="text-center w-full min-w-0">
+        <h3 className="text-white font-medium text-xs sm:text-sm truncate w-full">
           {member.display_name || member.name}
         </h3>
         {member.nick && member.nick !== member.display_name && (
-          <p className="text-gray-400 text-xs truncate w-full">@{member.name}</p>
+          <p className="text-gray-400 text-[10px] sm:text-xs truncate w-full">@{member.name}</p>
         )}
       </div>
 
       {/* Top Role */}
       {member.top_role_name && (
         <div
-          className="px-3 py-1 rounded-full text-xs font-medium"
+          className="px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium truncate max-w-full"
           style={{
             backgroundColor: member.top_role_color
               ? `${member.top_role_color}20`

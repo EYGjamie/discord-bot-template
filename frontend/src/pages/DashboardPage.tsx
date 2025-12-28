@@ -7,15 +7,15 @@ import ActiveMembers from '../components/dashboard/ActiveMembers';
 
 export default function DashboardPage() {
   return (
-    <div className="min-h-screen bg-[#0f1419] p-6">
+    <div className="min-h-screen bg-[#0f1419] p-4 sm:p-6 pt-16 lg:pt-4 sm:pt-6">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Dashboard</h1>
-        <p className="text-gray-400">Welcome back to Entropy Gaming HQ</p>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Dashboard</h1>
+        <p className="text-sm sm:text-base text-gray-400">Welcome back to Entropy Gaming HQ</p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
         <StatCard
           title="Total Members"
           value={42}
@@ -56,15 +56,15 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - 2/3 width */}
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
+        {/* Left Column - 2/3 width on large screens */}
+        <div className="xl:col-span-2 space-y-4 sm:space-y-6">
           <UpcomingEvents />
           <RecentActivity />
         </div>
 
-        {/* Right Column - 1/3 width */}
-        <div className="lg:col-span-1">
+        {/* Right Column - 1/3 width on large screens */}
+        <div className="xl:col-span-1">
           <ActiveMembers />
         </div>
       </div>

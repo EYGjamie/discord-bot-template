@@ -48,22 +48,22 @@ const activityTypeColors: Record<string, string> = {
 
 export default function RecentActivity() {
   return (
-    <div className="bg-[#1a1f2e] rounded-lg p-6 border border-gray-800">
-      <h2 className="text-white text-lg font-semibold mb-4">Recent Activity</h2>
+    <div className="bg-[#1a1f2e] rounded-lg p-4 sm:p-6 border border-gray-800">
+      <h2 className="text-white text-base sm:text-lg font-semibold mb-3 sm:mb-4">Recent Activity</h2>
       <div className="space-y-3">
         {mockActivities.map((activity) => (
-          <div key={activity.id} className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+          <div key={activity.id} className="flex items-start gap-2 sm:gap-3">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-700 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
               {activity.user_id}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-gray-300 text-sm">
+              <p className="text-gray-300 text-xs sm:text-sm">
                 <span className="font-medium text-white">{activity.user_id}</span>{' '}
                 {activity.message}
               </p>
               <p className="text-gray-500 text-xs mt-1">{activity.timestamp}</p>
             </div>
-            <span className={`px-2 py-1 text-xs font-medium rounded border ${activityTypeColors[activity.type]} flex-shrink-0`}>
+            <span className={`hidden sm:flex px-2 py-1 text-xs font-medium rounded border ${activityTypeColors[activity.type]} flex-shrink-0`}>
               {activity.type.charAt(0).toUpperCase() + activity.type.slice(1)}
             </span>
           </div>

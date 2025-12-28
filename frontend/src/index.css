@@ -1,1 +1,74 @@
 @import "tailwindcss";
+
+/* Responsive Calendar Styles */
+.react-calendar-dark {
+  width: 100% !important;
+  background-color: transparent !important;
+  border: none !important;
+}
+
+.react-calendar-dark button {
+  font-size: 0.75rem !important;
+  padding: 0.25rem !important;
+}
+
+@media (min-width: 640px) {
+  .react-calendar-dark button {
+    font-size: 0.875rem !important;
+    padding: 0.5rem !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .react-calendar-dark button {
+    font-size: 1rem !important;
+    padding: 0.75rem !important;
+  }
+}
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1f2e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Touch-friendly tap targets on mobile */
+@media (max-width: 768px) {
+  button, a, input, select {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Prevent text selection on interactive elements */
+button, .cursor-pointer {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Better focus states for accessibility */
+button:focus-visible, 
+a:focus-visible, 
+input:focus-visible, 
+select:focus-visible {
+  outline: 2px solid #06b6d4;
+  outline-offset: 2px;
+}

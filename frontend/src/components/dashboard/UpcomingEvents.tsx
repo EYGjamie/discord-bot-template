@@ -42,32 +42,32 @@ const statusColors = {
 
 export default function UpcomingEvents() {
   return (
-    <div className="bg-[#1a1f2e] rounded-lg p-6 border border-gray-800">
-      <h2 className="text-white text-lg font-semibold mb-4">Upcoming Events</h2>
+    <div className="bg-[#1a1f2e] rounded-lg p-4 sm:p-6 border border-gray-800">
+      <h2 className="text-white text-base sm:text-lg font-semibold mb-3 sm:mb-4">Upcoming Events</h2>
       <div className="space-y-3">
         {mockEvents.map((event) => (
           <div
             key={event.id}
-            className="p-4 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors"
+            className="p-3 sm:p-4 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors"
           >
-            <div className="flex items-start justify-between mb-2">
-              <h3 className="text-white font-medium">{event.title}</h3>
-              <span className={`px-2 py-1 text-xs font-medium rounded border ${statusColors[event.status]}`}>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-2">
+              <h3 className="text-white font-medium text-sm sm:text-base">{event.title}</h3>
+              <span className={`px-2 py-1 text-xs font-medium rounded border ${statusColors[event.status]} self-start sm:flex-shrink-0`}>
                 {event.status}
               </span>
             </div>
-            <p className="text-gray-400 text-sm mb-3">{event.description}</p>
-            <div className="flex items-center gap-4 text-gray-500 text-sm">
+            <p className="text-gray-400 text-xs sm:text-sm mb-3">{event.description}</p>
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-gray-500 text-xs sm:text-sm">
               <div className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
+                <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span>{event.date}</span>
               </div>
               <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
+                <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span>{event.time}</span>
               </div>
               <div className="flex items-center gap-1">
-                <Users className="w-4 h-4" />
+                <Users className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span>{event.participants}</span>
               </div>
             </div>
