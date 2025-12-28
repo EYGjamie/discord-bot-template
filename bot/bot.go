@@ -67,6 +67,17 @@ func New() (*Bot, error) {
 		logger.LogInfo("Database Initialized", "All database tables created successfully", false)
 	}
 
+	// Initialize default data (e.g., event categories)
+	guildID := os.Getenv("GUILD_ID")
+	if guildID != "" {
+		if err := database.InitializeDefaultData(db, guildID); err != nil {
+			logger.LogError("Default Data Initialization Failed", fmt.Sprintf("Failed to initialize default data: %v", err), "")
+			log.Printf("Warning: Failed to initialize default data: %v", err)
+		} else {
+			logger.LogInfo("Default Data Initialized", "Default event categories created successfully", false)
+		}
+	}
+
 	// Initialize settings manager
 	settingsManager := settings.NewManager(db)
 

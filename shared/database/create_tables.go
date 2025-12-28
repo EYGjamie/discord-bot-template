@@ -149,3 +149,15 @@ func InitializeTables(db *sql.DB) error {
 	log.Println("All database tables initialized successfully")
 	return nil
 }
+
+// InitializeDefaultData fügt Standard-Daten in die Datenbank ein, falls noch nicht vorhanden
+func InitializeDefaultData(db *sql.DB, guildID string) error {
+	// Initialisiere Standard-Event-Kategorien
+	if err := tables.InitializeDefaultCategories(db, guildID); err != nil {
+		log.Printf("Error initializing default event categories: %v", err)
+		return err
+	}
+	log.Println("Default event categories initialized successfully")
+
+	return nil
+}

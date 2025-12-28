@@ -218,9 +218,9 @@ export default function EventModal({ event, defaultDate, onClose, onSave, catego
           {/* Color Picker */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Color
+              Category
             </label>
-            <div className="grid grid-cols-8 gap-2">
+            <div className="grid grid-cols-4 gap-3">
               {(categories.length > 0 ? categories : [
                 { id: 1, name: 'Blue', color: '#4285F4', sort_order: 1 },
                 { id: 2, name: 'Red', color: '#DB4437', sort_order: 2 },
@@ -235,14 +235,18 @@ export default function EventModal({ event, defaultDate, onClose, onSave, catego
                   key={colorOption.color}
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, color: colorOption.color }))}
-                  className={`w-10 h-10 rounded-lg transition-all ${
+                  className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
                     formData.color === colorOption.color
-                      ? 'ring-2 ring-white ring-offset-2 ring-offset-gray-800'
-                      : 'hover:ring-2 hover:ring-gray-400'
+                      ? 'border-white bg-gray-700'
+                      : 'border-gray-600 hover:border-gray-500 bg-gray-750'
                   }`}
-                  style={{ backgroundColor: colorOption.color }}
-                  title={colorOption.name}
-                />
+                >
+                  <div
+                    className="w-12 h-12 rounded-lg"
+                    style={{ backgroundColor: colorOption.color }}
+                  />
+                  <span className="text-xs text-gray-300 font-medium">{colorOption.name}</span>
+                </button>
               ))}
             </div>
           </div>

@@ -3,9 +3,11 @@ import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { api } from '../services/api';
 import type { CalendarEvent } from '../types';
-import { format, parseISO, isWithinInterval, isSameDay, isAfter, startOfDay } from 'date-fns';
+import { format, parseISO, isSameDay, isAfter, startOfDay } from 'date-fns';
 import { Calendar as CalendarIcon, Clock, MapPin, Plus, Edit2, Trash2, Users, Settings, X, Save } from 'lucide-react';
 import EventModal from '../components/events/EventModal';
+import { useAuth } from '../hooks/useAuth';
+import { usePermissions } from '../hooks/usePermissions';
 
 interface EventCategory {
   id: number;
@@ -15,6 +17,9 @@ interface EventCategory {
 }
 
 export default function EventsPage() {
+  const { user } = useAuth();
+  const permissions = usePermissions(user);
+  
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<CalendarEvent[]>([]);
@@ -28,8 +33,8 @@ export default function EventsPage() {
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [editingCategory, setEditingCategory] = useState<EventCategory | null>(null);
 
-  const currentUserId = localStorage.getItem('discord_user_id') || '';
-  const isAdmin = localStorage.getItem('is_admin') === 'true';
+  const currentUserId = user?.discord_id || '';
+  const isAdmin = permissions.isAdmin;
 
   // Load categories on mount
   useEffect(() => {
@@ -58,14 +63,15 @@ export default function EventsPage() {
     console.log('Selected colors:', Array.from(selectedColors));
     
     const dayEvents = events.filter(event => {
-      const startDate = parseISO(event.start_date);
-      const endDate = parseISO(event.end_date);
-      const currentDate = parseISO(dateStr);
+      // Parse dates and extract only the date part (ignore time and timezone)
+      const eventStartDate = format(parseISO(event.start_date), 'yyyy-MM-dd');
+      const eventEndDate = format(parseISO(event.end_date), 'yyyy-MM-dd');
       
-      const inRange = isWithinInterval(currentDate, { start: startDate, end: endDate });
+      // Compare only the date strings
+      const inRange = dateStr >= eventStartDate && dateStr <= eventEndDate;
       const colorMatch = selectedColors.has(event.color);
       
-      console.log(`Event "${event.title}": inRange=${inRange}, color=${event.color}, colorMatch=${colorMatch}`);
+      console.log(`Event "${event.title}": inRange=${inRange}, color=${event.color}, colorMatch=${colorMatch}, start=${eventStartDate}, end=${eventEndDate}`);
       
       return inRange && colorMatch;
     });
@@ -203,11 +209,12 @@ export default function EventsPage() {
       }
       
       try {
-        const startDate = parseISO(event.start_date);
-        const endDate = parseISO(event.end_date);
-        const currentDate = parseISO(dateStr);
+        // Parse dates and extract only the date part (ignore time and timezone)
+        const eventStartDate = format(parseISO(event.start_date), 'yyyy-MM-dd');
+        const eventEndDate = format(parseISO(event.end_date), 'yyyy-MM-dd');
         
-        const inRange = isWithinInterval(currentDate, { start: startDate, end: endDate });
+        // Compare only the date strings
+        const inRange = dateStr >= eventStartDate && dateStr <= eventEndDate;
         const colorMatch = selectedColors.has(event.color);
         
         return inRange && colorMatch;
@@ -251,6 +258,11 @@ export default function EventsPage() {
             style={{ backgroundColor: event.color }}
             title={event.title}
           >
+            <img
+              src={getAvatarUrl(event.creator_avatar, event.created_by)}
+              alt={event.creator_name}
+              className="event-creator-avatar"
+            />
             <span className="event-title-preview">{event.title}</span>
           </div>
         ))}
@@ -324,10 +336,11 @@ export default function EventsPage() {
                 {isAdmin && (
                   <button
                     onClick={() => setShowCategoryManager(true)}
-                    className="p-1 hover:bg-gray-700 rounded transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-sm"
                     title="Manage Categories"
                   >
-                    <Settings size={16} className="text-gray-400" />
+                    <Settings size={16} className="text-blue-400" />
+                    <span className="text-gray-300">Manage</span>
                   </button>
                 )}
               </div>
@@ -761,12 +774,25 @@ export default function EventsPage() {
           text-overflow: ellipsis;
           white-space: nowrap;
           text-align: left;
+          display: flex;
+          align-items: center;
+          gap: 3px;
+        }
+        
+        .event-creator-avatar {
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          flex-shrink: 0;
+          border: 1px solid rgba(255, 255, 255, 0.3);
         }
         
         .event-title-preview {
           color: white;
           font-weight: 500;
           text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
         
         .event-more {

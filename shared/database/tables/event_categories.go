@@ -128,3 +128,38 @@ func GetEventCategoriesByGuild(db *sql.DB, guildID string) ([]EventCategory, err
 
 	return categories, nil
 }
+
+// InitializeDefaultCategories erstellt Standard-Kategorien für eine Guild, falls noch keine existieren
+func InitializeDefaultCategories(db *sql.DB, guildID string) error {
+	// Prüfe, ob bereits Kategorien existieren
+	existing, err := GetEventCategoriesByGuild(db, guildID)
+	if err != nil {
+		return err
+	}
+
+	// Wenn bereits Kategorien existieren, nichts tun
+	if len(existing) > 0 {
+		return nil
+	}
+
+	// Standard-Kategorien definieren
+	defaultCategories := []EventCategory{
+		{GuildID: guildID, Name: "Primary", Color: "#4285F4", SortOrder: 1},
+		{GuildID: guildID, Name: "Success", Color: "#0F9D58", SortOrder: 2},
+		{GuildID: guildID, Name: "Warning", Color: "#F4B400", SortOrder: 3},
+		{GuildID: guildID, Name: "Danger", Color: "#DB4437", SortOrder: 4},
+		{GuildID: guildID, Name: "Purple", Color: "#AB47BC", SortOrder: 5},
+		{GuildID: guildID, Name: "Pink", Color: "#E91E63", SortOrder: 6},
+		{GuildID: guildID, Name: "Orange", Color: "#FF6F00", SortOrder: 7},
+		{GuildID: guildID, Name: "Teal", Color: "#009688", SortOrder: 8},
+	}
+
+	// Kategorien einfügen
+	for i := range defaultCategories {
+		if err := InsertEventCategory(db, &defaultCategories[i]); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
