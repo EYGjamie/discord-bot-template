@@ -134,6 +134,7 @@ export interface CalendarEvent {
   end_date: string;   // YYYY-MM-DD
   start_time: string; // HH:MM
   end_time: string;   // HH:MM
+  is_all_day: boolean; // Ganztägiges Event
   color: string;      // Hex color
   location: string;
   guests: string;     // Comma-separated list of guest names
@@ -151,6 +152,7 @@ export interface CreateEventRequest {
   end_date: string;
   start_time: string;
   end_time: string;
+  is_all_day: boolean;
   color: string;
   location: string;
   guests: string;

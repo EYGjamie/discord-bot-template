@@ -16,6 +16,7 @@ type Event struct {
 	EndDate     string    `json:"end_date"`   // YYYY-MM-DD (kann gleich wie start_date sein)
 	StartTime   string    `json:"start_time"` // HH:MM
 	EndTime     string    `json:"end_time"`   // HH:MM
+	IsAllDay    bool      `json:"is_all_day"` // Ganztägiges Event
 	Color       string    `json:"color"`      // Hex color code (z.B. #4285F4)
 	Location    string    `json:"location"`   // Optional: Ort des Events
 	Guests      string    `json:"guests"`     // Comma-separated list of guest names
@@ -36,6 +37,7 @@ func CreateEventsTable(db *sql.DB) error {
 			end_date DATE NOT NULL,
 			start_time TIME,
 			end_time TIME,
+			is_all_day BOOLEAN DEFAULT FALSE,
 			color VARCHAR(7) DEFAULT '#4285F4',
 			location VARCHAR(500),
 			guests TEXT,
@@ -60,8 +62,8 @@ func CreateEventsTable(db *sql.DB) error {
 // InsertEvent fügt ein neues Event in die Datenbank ein
 func InsertEvent(db *sql.DB, event *Event) error {
 	query := `
-		INSERT INTO events (guild_id, title, description, start_date, end_date, start_time, end_time, color, location, guests, created_by)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		INSERT INTO events (guild_id, title, description, start_date, end_date, start_time, end_time, is_all_day, color, location, guests, created_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		RETURNING id, created_at, updated_at
 	`
 
@@ -76,6 +78,7 @@ func InsertEvent(db *sql.DB, event *Event) error {
 		event.EndDate,
 		event.StartTime,
 		event.EndTime,
+		event.IsAllDay,
 		event.Color,
 		event.Location,
 		event.Guests,
@@ -90,8 +93,8 @@ func UpdateEvent(db *sql.DB, event *Event) error {
 	query := `
 		UPDATE events 
 		SET title = $1, description = $2, start_date = $3, end_date = $4, start_time = $5, 
-		    end_time = $6, color = $7, location = $8, guests = $9, updated_at = CURRENT_TIMESTAMP
-		WHERE id = $10
+		    end_time = $6, is_all_day = $7, color = $8, location = $9, guests = $10, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $11
 		RETURNING updated_at
 	`
 
@@ -105,6 +108,7 @@ func UpdateEvent(db *sql.DB, event *Event) error {
 		event.EndDate,
 		event.StartTime,
 		event.EndTime,
+		event.IsAllDay,
 		event.Color,
 		event.Location,
 		event.Guests,

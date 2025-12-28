@@ -19,6 +19,7 @@ export default function EventModal({ event, defaultDate, onClose, onSave, catego
     end_date: event?.end_date || defaultDate || '',
     start_time: event?.start_time || '09:00',
     end_time: event?.end_time || '10:00',
+    is_all_day: event?.is_all_day || false,
     color: event?.color || '#4285F4',
     location: event?.location || '',
     guests: event?.guests || '',
@@ -156,33 +157,49 @@ export default function EventModal({ event, defaultDate, onClose, onSave, catego
             </div>
           </div>
 
-          {/* Time Range */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Start Time
-              </label>
-              <input
-                type="time"
-                name="start_time"
-                value={formData.start_time}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                End Time
-              </label>
-              <input
-                type="time"
-                name="end_time"
-                value={formData.end_time}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+          {/* All Day Toggle */}
+          <div className="flex items-center gap-3 p-3 bg-gray-750 rounded-lg">
+            <input
+              type="checkbox"
+              id="is_all_day"
+              checked={formData.is_all_day}
+              onChange={(e) => setFormData(prev => ({ ...prev, is_all_day: e.target.checked }))}
+              className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+            />
+            <label htmlFor="is_all_day" className="text-sm font-medium text-gray-300 cursor-pointer">
+              Ganztägiges Event
+            </label>
           </div>
+
+          {/* Time Range */}
+          {!formData.is_all_day && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Start Time
+                </label>
+                <input
+                  type="time"
+                  name="start_time"
+                  value={formData.start_time}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  End Time
+                </label>
+                <input
+                  type="time"
+                  name="end_time"
+                  value={formData.end_time}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Location */}
           <div>

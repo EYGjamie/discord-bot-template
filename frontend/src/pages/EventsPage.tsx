@@ -389,10 +389,10 @@ export default function EventsPage() {
                   <div
                     key={event.id}
                     onClick={() => setSelectedEvent(event)}
-                    className={`p-4 rounded-lg border-l-4 cursor-pointer transition-all ${
+                    className={`p-4 rounded-lg border-l-4 cursor-pointer transition-all shadow-md ${
                       selectedEvent?.id === event.id
-                        ? 'bg-gray-700 border-blue-500'
-                        : 'bg-gray-750 hover:bg-gray-700 border-gray-600'
+                        ? 'bg-gray-700 border-blue-500 shadow-lg shadow-blue-500/20'
+                        : 'bg-gray-700/80 hover:bg-gray-700 border-gray-500 hover:shadow-lg'
                     }`}
                     style={{ borderLeftColor: event.color }}
                   >
@@ -423,10 +423,18 @@ export default function EventsPage() {
                     </div>
                     
                     <div className="space-y-1 text-sm text-gray-400">
-                      <div className="flex items-center gap-1">
-                        <Clock size={14} />
-                        <span>{event.start_time} - {event.end_time}</span>
-                      </div>
+                      {!event.is_all_day && (
+                        <div className="flex items-center gap-1">
+                          <Clock size={14} />
+                          <span>{event.start_time} - {event.end_time}</span>
+                        </div>
+                      )}
+                      {event.is_all_day && (
+                        <div className="flex items-center gap-1">
+                          <Clock size={14} />
+                          <span>Ganztägig</span>
+                        </div>
+                      )}
                       {event.location && (
                         <div className="flex items-center gap-1">
                           <MapPin size={14} />
@@ -469,10 +477,18 @@ export default function EventsPage() {
                     <p className="text-sm text-gray-400">Date</p>
                     <p>{formatDateRange(selectedEvent)}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-400">Time</p>
-                    <p>{selectedEvent.start_time} - {selectedEvent.end_time}</p>
-                  </div>
+                  {!selectedEvent.is_all_day && (
+                    <div>
+                      <p className="text-sm text-gray-400">Time</p>
+                      <p>{selectedEvent.start_time} - {selectedEvent.end_time}</p>
+                    </div>
+                  )}
+                  {selectedEvent.is_all_day && (
+                    <div>
+                      <p className="text-sm text-gray-400">Time</p>
+                      <p>Ganztägig</p>
+                    </div>
+                  )}
                   {selectedEvent.location && (
                     <div>
                       <p className="text-sm text-gray-400">Location</p>
@@ -518,7 +534,7 @@ export default function EventsPage() {
                   setSelectedDate(parseISO(event.start_date));
                   setSelectedEvent(event);
                 }}
-                className="p-4 rounded-lg border-l-4 cursor-pointer transition-all bg-gray-750 hover:bg-gray-700"
+                className="p-4 rounded-lg border-l-4 cursor-pointer transition-all shadow-md bg-gray-700/80 hover:bg-gray-700 border-gray-500 hover:shadow-lg"
                 style={{ borderLeftColor: event.color }}
               >
                 <h3 className="text-white font-semibold mb-2">{event.title}</h3>
