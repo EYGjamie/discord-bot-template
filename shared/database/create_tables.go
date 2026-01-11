@@ -153,6 +153,13 @@ func InitializeTables(db *sql.DB) error {
 	}
 	log.Println("Matches table initialized successfully")
 
+	// Erstelle Match Categories-Tabelle
+	if err := tables.CreateMatchCategoriesTable(db); err != nil {
+		log.Printf("Error creating match_categories table: %v", err)
+		return err
+	}
+	log.Println("Match Categories table initialized successfully")
+
 	// Erstelle Discord-Statistics-Tabelle
 	if err := tables.CreateDiscordStatisticsTable(db); err != nil {
 		log.Printf("Error creating discord_statistics table: %v", err)
@@ -172,6 +179,13 @@ func InitializeDefaultData(db *sql.DB, guildID string) error {
 		return err
 	}
 	log.Println("Default event categories initialized successfully")
+
+	// Initialisiere Standard-Match-Kategorien
+	if err := tables.InitializeDefaultMatchCategories(db, guildID); err != nil {
+		log.Printf("Error initializing default match categories: %v", err)
+		return err
+	}
+	log.Println("Default match categories initialized successfully")
 
 	return nil
 }

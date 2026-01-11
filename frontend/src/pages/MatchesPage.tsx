@@ -125,7 +125,7 @@ export default function MatchesPage() {
   const loadCategories = async () => {
     try {
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-      const response = await fetch(`${API_BASE_URL}/api/event-categories`, {
+      const response = await fetch(`${API_BASE_URL}/api/match-categories`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
@@ -142,14 +142,14 @@ export default function MatchesPage() {
       console.error('Failed to load categories:', err);
       // Use default colors if categories fail to load
       setCategories([
-        { id: 1, name: 'Primary', color: '#4285F4', sort_order: 1 },
-        { id: 2, name: 'Success', color: '#0F9D58', sort_order: 2 },
-        { id: 3, name: 'Warning', color: '#F4B400', sort_order: 3 },
-        { id: 4, name: 'Danger', color: '#DB4437', sort_order: 4 },
-        { id: 5, name: 'Purple', color: '#AB47BC', sort_order: 5 },
-        { id: 6, name: 'Pink', color: '#E91E63', sort_order: 6 },
-        { id: 7, name: 'Orange', color: '#FF6F00', sort_order: 7 },
-        { id: 8, name: 'Teal', color: '#009688', sort_order: 8 },
+        { id: 1, name: 'Competitive', color: '#E53935', sort_order: 1 },
+        { id: 2, name: 'Casual', color: '#43A047', sort_order: 2 },
+        { id: 3, name: 'Training', color: '#FB8C00', sort_order: 3 },
+        { id: 4, name: 'Tournament', color: '#8E24AA', sort_order: 4 },
+        { id: 5, name: 'Scrim', color: '#3949AB', sort_order: 5 },
+        { id: 6, name: 'League', color: '#00ACC1', sort_order: 6 },
+        { id: 7, name: 'Friendly', color: '#FDD835', sort_order: 7 },
+        { id: 8, name: 'Championship', color: '#D81B60', sort_order: 8 },
       ]);
     }
   };
@@ -601,7 +601,7 @@ export default function MatchesPage() {
                         onClick={async () => {
                           try {
                             const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-                            await fetch(`${API_BASE_URL}/api/event-categories/${category.id}`, {
+                            await fetch(`${API_BASE_URL}/api/match-categories/${category.id}`, {
                               method: 'PUT',
                               headers: {
                                 'Content-Type': 'application/json',
@@ -648,7 +648,7 @@ export default function MatchesPage() {
                           if (!confirm('Delete this category?')) return;
                           try {
                             const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-                            await fetch(`${API_BASE_URL}/api/event-categories/${category.id}`, {
+                            await fetch(`${API_BASE_URL}/api/match-categories/${category.id}`, {
                               method: 'DELETE',
                               headers: {
                                 'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -673,12 +673,12 @@ export default function MatchesPage() {
               onClick={async () => {
                 const name = prompt('New category name:');
                 if (!name) return;
-                const color = prompt('Color hex code:', '#4285F4');
+                const color = prompt('Color hex code:', '#E53935');
                 if (!color) return;
                 
                 try {
                   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-                  await fetch(`${API_BASE_URL}/api/event-categories`, {
+                  await fetch(`${API_BASE_URL}/api/match-categories`, {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',

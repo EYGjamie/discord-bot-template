@@ -25,24 +25,25 @@ func (bot *Bot) onInteractionCreate(s *discordgo.Session, i *discordgo.Interacti
 
 		// Prüfe welcher Command ausgeführt wurde
 		switch cmdName {
-		case "moderation":
+		// Commands now managed through Web UI
+		/* case "moderation":
 			commands.HandleModerationCommand(s, i, bot.settings)
+		case "setmodrole":
+			commands.HandleSetModRoleCommand(s, i, bot.db)
+		case "setupcreatevoice":
+			commands.HandleSetupCreateVoiceCommand(s, i, bot.db)
+		case "purge-schedule":
+			commands.HandlePurgeScheduleCommand(s, i, bot.db) */
 		case "warn":
 			commands.HandleWarnCommand(s, i, bot.db)
 		case "note":
 			commands.HandleNoteCommand(s, i, bot.db)
 		case "userinfo":
 			commands.HandleUserInfoCommand(s, i, bot.db)
-		case "setmodrole":
-			commands.HandleSetModRoleCommand(s, i, bot.db)
 		case "coinflip":
 			commands.HandleCoinflipCommand(s, i, bot.db)
-		case "setupcreatevoice":
-			commands.HandleSetupCreateVoiceCommand(s, i, bot.db)
 		case "purge":
 			commands.HandlePurgeCommand(s, i, bot.db)
-		case "purge-schedule":
-			commands.HandlePurgeScheduleCommand(s, i, bot.db)
 		}
 	case discordgo.InteractionMessageComponent:
 		// Handle Button/Select Menu Interactions

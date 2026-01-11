@@ -30,12 +30,13 @@ func (bot *Bot) registerCommands() {
 	successCount := 0
 	for _, guild := range guilds {
 		// Registriere Commands für jede Guild
-		if err := commands.SetupModerationCommand(bot.session, guild.ID); err != nil {
-			log.Printf("Fehler beim Registrieren des /moderation Commands für Guild %s: %v", guild.ID, err)
+		// Moderation Command - Now available in Web UI
+		/* if err := commands.SetupModerationCommand(bot.session, guild.ID); err != nil {
+			log.Printf("Fehler beim Registrieren des /moderation Commands f\u00fcr Guild %s: %v", guild.ID, err)
 			logger.LogError("Command Registration Failed", fmt.Sprintf("Failed to register /moderation for guild %s: %v", guild.Name, err), "")
 		} else {
-			log.Printf("✓ Command /moderation registriert für Guild: %s (%s)", guild.Name, guild.ID)
-		}
+			log.Printf("✓ Command /moderation registriert f\u00fcr Guild: %s (%s)", guild.Name, guild.ID)
+		} */
 
 		if err := commands.SetupWarnCommand(bot.session, guild.ID); err != nil {
 			log.Printf("Fehler beim Registrieren des /warn Commands für Guild %s: %v", guild.ID, err)
@@ -58,12 +59,13 @@ func (bot *Bot) registerCommands() {
 			log.Printf("✓ Command /userinfo registriert für Guild: %s (%s)", guild.Name, guild.ID)
 		}
 
-		if err := commands.SetupSetModRoleCommand(bot.session, guild.ID); err != nil {
-			log.Printf("Fehler beim Registrieren des /setmodrole Commands für Guild %s: %v", guild.ID, err)
+		// SetModRole Command - Now available in Web UI
+		/* if err := commands.SetupSetModRoleCommand(bot.session, guild.ID); err != nil {
+			log.Printf("Fehler beim Registrieren des /setmodrole Commands f\u00fcr Guild %s: %v", guild.ID, err)
 			logger.LogError("Command Registration Failed", fmt.Sprintf("Failed to register /setmodrole for guild %s: %v", guild.Name, err), "")
 		} else {
-			log.Printf("✓ Command /setmodrole registriert für Guild: %s (%s)", guild.Name, guild.ID)
-		}
+			log.Printf("✓ Command /setmodrole registriert f\u00fcr Guild: %s (%s)", guild.Name, guild.ID)
+		} */
 
 		if err := commands.SetupCoinflipCommand(bot.session, guild.ID); err != nil {
 			log.Printf("Fehler beim Registrieren des /coinflip Commands für Guild %s: %v", guild.ID, err)
@@ -72,12 +74,13 @@ func (bot *Bot) registerCommands() {
 			log.Printf("✓ Command /coinflip registriert für Guild: %s (%s)", guild.Name, guild.ID)
 		}
 
-		if err := commands.SetupCreateVoiceCommand(bot.session, guild.ID); err != nil {
-			log.Printf("Fehler beim Registrieren des /setupcreatevoice Commands für Guild %s: %v", guild.ID, err)
+		// CreateVoice Command - Now available in Web UI
+		/* if err := commands.SetupCreateVoiceCommand(bot.session, guild.ID); err != nil {
+			log.Printf("Fehler beim Registrieren des /setupcreatevoice Commands f\u00fcr Guild %s: %v", guild.ID, err)
 			logger.LogError("Command Registration Failed", fmt.Sprintf("Failed to register /setupcreatevoice for guild %s: %v", guild.Name, err), "")
 		} else {
-			log.Printf("✓ Command /setupcreatevoice registriert für Guild: %s (%s)", guild.Name, guild.ID)
-		}
+			log.Printf("✓ Command /setupcreatevoice registriert f\u00fcr Guild: %s (%s)", guild.Name, guild.ID)
+		} */
 
 		if err := commands.SetupPurgeCommand(bot.session, guild.ID); err != nil {
 			log.Printf("Fehler beim Registrieren des /purge Commands für Guild %s: %v", guild.ID, err)
@@ -86,12 +89,13 @@ func (bot *Bot) registerCommands() {
 			log.Printf("✓ Command /purge registriert für Guild: %s (%s)", guild.Name, guild.ID)
 		}
 
-		if err := commands.SetupPurgeScheduleCommand(bot.session, guild.ID); err != nil {
-			log.Printf("Fehler beim Registrieren des /purge-schedule Commands für Guild %s: %v", guild.ID, err)
+		// Purge Schedule Command - Now available in Web UI
+		/* if err := commands.SetupPurgeScheduleCommand(bot.session, guild.ID); err != nil {
+			log.Printf("Fehler beim Registrieren des /purge-schedule Commands f\u00fcr Guild %s: %v", guild.ID, err)
 			logger.LogError("Command Registration Failed", fmt.Sprintf("Failed to register /purge-schedule for guild %s: %v", guild.Name, err), "")
 		} else {
-			log.Printf("✓ Command /purge-schedule registriert für Guild: %s (%s)", guild.Name, guild.ID)
-		}
+			log.Printf("✓ Command /purge-schedule registriert f\u00fcr Guild: %s (%s)", guild.Name, guild.ID)
+		} */
 
 		successCount++
 	}

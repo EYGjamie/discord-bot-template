@@ -119,6 +119,30 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux.HandleFunc("PUT /api/matches/{id}", handlers.UpdateMatch(s.db.DB()))
 	mux.HandleFunc("DELETE /api/matches/{id}", handlers.DeleteMatch(s.db.DB()))
 
+	// Match Category routes (GET public, POST/PUT/DELETE admin only)
+	mux.HandleFunc("GET /api/match-categories", handlers.GetMatchCategories(s.db.DB()))
+	mux.HandleFunc("POST /api/match-categories",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				handlers.CreateMatchCategory(s.db.DB()),
+			),
+		),
+	)
+	mux.HandleFunc("PUT /api/match-categories/{id}",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				handlers.UpdateMatchCategory(s.db.DB()),
+			),
+		),
+	)
+	mux.HandleFunc("DELETE /api/match-categories/{id}",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				handlers.DeleteMatchCategory(s.db.DB()),
+			),
+		),
+	)
+
 	// Audit logs routes (protected - admin only)
 	mux.HandleFunc("GET /api/audit-logs",
 		middleware.RequireAuth(
@@ -154,6 +178,53 @@ func (s *Server) RegisterRoutes() http.Handler {
 		middleware.RequireAuth(
 			permissionChecker.RequirePermission(middleware.PermissionModerator)(
 				handlers.GetStatisticsInRange(s.db.DB()),
+			),
+		),
+	)
+
+	// Bot Settings routes (protected - admin only)
+	mux.HandleFunc("GET /api/bot-settings", handlers.GetBotSettings(s.db.DB()))
+	mux.HandleFunc("GET /api/discord/roles", handlers.GetDiscordRoles(s.db.DB()))
+	mux.HandleFunc("GET /api/discord/channels", handlers.GetDiscordChannels(s.db.DB()))
+	mux.HandleFunc("PUT /api/bot-settings/moderator-roles",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				handlers.UpdateModeratorRoles(s.db.DB()),
+			),
+		),
+	)
+	mux.HandleFunc("PUT /api/bot-settings/moderation",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				handlers.UpdateModerationSettings(s.db.DB()),
+			),
+		),
+	)
+	mux.HandleFunc("POST /api/bot-settings/create-voice",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				handlers.CreateOrUpdateCreateVoiceSetting(s.db.DB()),
+			),
+		),
+	)
+	mux.HandleFunc("DELETE /api/bot-settings/create-voice/{channel_id}",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				handlers.DeleteCreateVoiceSetting(s.db.DB()),
+			),
+		),
+	)
+	mux.HandleFunc("POST /api/bot-settings/purge",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				handlers.CreateOrUpdatePurgeSetting(s.db.DB()),
+			),
+		),
+	)
+	mux.HandleFunc("DELETE /api/bot-settings/purge/{channel_id}",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				handlers.DeletePurgeSetting(s.db.DB()),
 			),
 		),
 	)

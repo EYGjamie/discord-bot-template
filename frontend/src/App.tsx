@@ -8,6 +8,7 @@ import UserProfilePage from './pages/UserProfilePage';
 import EventsPage from './pages/EventsPage';
 import MatchesPage from './pages/MatchesPage';
 import DiscordPage from './pages/DiscordPage';
+import SettingsPage from './pages/SettingsPage';
 import DashboardLayout from './components/layout/DashboardLayout';
 import { ProtectedRoute } from './components/auth/PermissionGate';
 
@@ -96,7 +97,7 @@ function App() {
             <AuthProtectedRoute>
               <DashboardLayout>
                 <ProtectedRoute user={user} requiredPermission="admin">
-                  <div className="p-6 text-white">Settings Page</div>
+                  <SettingsPage />
                 </ProtectedRoute>
               </DashboardLayout>
             </AuthProtectedRoute>
