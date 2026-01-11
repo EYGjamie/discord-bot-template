@@ -6,102 +6,100 @@ import (
 	"log"
 	"net/http"
 	"os"
-
-	"discord-bot-template/bot/settings"
-	"discord-bot-template/shared/database/tables"
 )
 
-// GetDiscordRoles gibt alle konfigurierten Moderator-Rollen aus der DB zurück
+// RoleInfo repräsentiert eine Discord-Rolle mit Namen und Farbe
+type RoleInfo struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Color    int    `json:"color"`
+	ColorHex string `json:"color_hex"`
+	Position int    `json:"position"`
+}
+
+// ChannelInfo repräsentiert einen Discord-Channel mit Namen
+type ChannelInfo struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Type     int    `json:"type"`
+	Position int    `json:"position"`
+}
+
+// GetDiscordRoles gibt alle Rollen der Guild von der Bot-API zurück
 func GetDiscordRoles(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		guildID := os.Getenv("GUILD_ID")
-		if guildID == "" {
-			http.Error(w, "GUILD_ID not configured", http.StatusInternalServerError)
-			return
+		botAPIURL := os.Getenv("BOT_API_URL")
+		if botAPIURL == "" {
+			botAPIURL = "http://localhost:8090"
 		}
 
-		roles, err := settings.GetModeratorRoles(db, guildID)
+		// Hole Rollen von Bot-API
+		resp, err := http.Get(botAPIURL + "/api/guild/roles")
 		if err != nil {
-			log.Printf("Error fetching moderator roles: %v", err)
+			log.Printf("Error fetching roles from bot API: %v", err)
+			http.Error(w, "Failed to fetch roles", http.StatusInternalServerError)
+			return
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			log.Printf("Bot API returned status %d", resp.StatusCode)
 			http.Error(w, "Failed to fetch roles", http.StatusInternalServerError)
 			return
 		}
 
-		// Konvertiere []string zu []map[string]string für bessere JSON-Struktur
-		roleList := make([]map[string]string, 0, len(roles))
-		for _, roleID := range roles {
-			roleList = append(roleList, map[string]string{
-				"id":   roleID,
-				"name": "Moderator Role", // Name nicht verfügbar ohne Discord API
-			})
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"roles": roleList,
-		})
-	}
-}
-
-// GetDiscordChannels gibt alle konfigurierten Channels aus der DB zurück
-func GetDiscordChannels(db *sql.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		guildID := os.Getenv("GUILD_ID")
-		if guildID == "" {
-			http.Error(w, "GUILD_ID not configured", http.StatusInternalServerError)
+		// Parse Response
+		var result map[string]interface{}
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			log.Printf("Error decoding roles response: %v", err)
+			http.Error(w, "Failed to parse roles", http.StatusInternalServerError)
 			return
 		}
 
-		channels := make([]map[string]interface{}, 0)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(result)
+	}
+}
 
-		// Moderation Channel
-		moderationChannelSetting, err := tables.GetBotSetting(db, "moderation_channel_id_"+guildID)
-		if err == nil && moderationChannelSetting.Value != "" {
-			channels = append(channels, map[string]interface{}{
-				"id":   moderationChannelSetting.Value,
-				"name": "Moderation Log Channel",
-				"type": "moderation",
-			})
+// GetDiscordChannels gibt alle Channels der Guild von der Bot-API zurück
+func GetDiscordChannels(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		botAPIURL := os.Getenv("BOT_API_URL")
+		if botAPIURL == "" {
+			botAPIURL = "http://localhost:8090"
 		}
 
-		// Create Voice Channels
-		createVoiceSettings, err := tables.GetCreateVoiceSettingsByGuildID(db, guildID)
-		if err != nil {
-			log.Printf("Error fetching create voice settings: %v", err)
-		} else {
-			for _, cv := range createVoiceSettings {
-				channels = append(channels, map[string]interface{}{
-					"id":   cv.ChannelID,
-					"name": "Create Voice Channel",
-					"type": "voice",
-				})
-				if cv.ControlChannelID != "" {
-					channels = append(channels, map[string]interface{}{
-						"id":   cv.ControlChannelID,
-						"name": "Voice Control Panel",
-						"type": "text",
-					})
-				}
-			}
+		// Optional: Type-Filter durchreichen
+		channelType := r.URL.Query().Get("type")
+		url := botAPIURL + "/api/guild/channels"
+		if channelType != "" {
+			url += "?type=" + channelType
 		}
 
-		// Purge Channels
-		purgeSettings, err := tables.GetGuildPurgeSettings(db, guildID)
+		// Hole Channels von Bot-API
+		resp, err := http.Get(url)
 		if err != nil {
-			log.Printf("Error fetching purge settings: %v", err)
-		} else {
-			for _, purge := range purgeSettings {
-				channels = append(channels, map[string]interface{}{
-					"id":   purge.ChannelID,
-					"name": "Auto-Purge Channel",
-					"type": "text",
-				})
-			}
+			log.Printf("Error fetching channels from bot API: %v", err)
+			http.Error(w, "Failed to fetch channels", http.StatusInternalServerError)
+			return
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			log.Printf("Bot API returned status %d", resp.StatusCode)
+			http.Error(w, "Failed to fetch channels", http.StatusInternalServerError)
+			return
+		}
+
+		// Parse Response
+		var result map[string]interface{}
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			log.Printf("Error decoding channels response: %v", err)
+			http.Error(w, "Failed to parse channels", http.StatusInternalServerError)
+			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"channels": channels,
-		})
+		json.NewEncoder(w).Encode(result)
 	}
 }

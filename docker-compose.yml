@@ -13,12 +13,14 @@ services:
       BOT_API_PORT: ${BOT_API_PORT:-8090}
       DEV_DISCORD_BOT_TOKEN: ${DEV_DISCORD_BOT_TOKEN}
       PROD_DISCORD_BOT_TOKEN: ${PROD_DISCORD_BOT_TOKEN}
+      GUILD_ID: ${GUILD_ID}
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       DB_DATABASE: ${DB_DATABASE}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_SCHEMA: ${DB_SCHEMA}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
     volumes:
       - ./logs:/app/logs
     depends_on:

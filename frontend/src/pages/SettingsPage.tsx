@@ -35,6 +35,21 @@ interface PurgeSetting {
   updated_at: string;
 }
 
+interface DiscordRole {
+  id: string;
+  name: string;
+  color: number;
+  color_hex: string;
+  position: number;
+}
+
+interface DiscordChannel {
+  id: string;
+  name: string;
+  type: number; // 0 = Text, 2 = Voice
+  position: number;
+}
+
 export default function SettingsPage() {
   const { user } = useAuth();
   const permissions = usePermissions(user);
@@ -42,12 +57,15 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<BotSettings | null>(null);
   
+  // Discord Data
+  const [availableRoles, setAvailableRoles] = useState<DiscordRole[]>([]);
+  const [availableChannels, setAvailableChannels] = useState<DiscordChannel[]>([]);
+  
   // Moderation Settings
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [moderationChannel, setModerationChannel] = useState('');
   const [logEdits, setLogEdits] = useState(false);
   const [logDeletes, setLogDeletes] = useState(false);
-  const [newRoleId, setNewRoleId] = useState('');
 
   // Create Voice Settings
   const [newCreateVoice, setNewCreateVoice] = useState({
@@ -65,7 +83,36 @@ export default function SettingsPage() {
 
   useEffect(() => {
     loadSettings();
+    loadDiscordData();
   }, []);
+
+  const loadDiscordData = async () => {
+    try {
+      const BOT_API_URL = import.meta.env.VITE_BOT_API_URL || 'http://localhost:8090';
+      
+      // Load Roles
+      const rolesResponse = await fetch(`${BOT_API_URL}/api/guild/roles`);
+      if (rolesResponse.ok) {
+        const rolesData = await rolesResponse.json();
+        console.log('Loaded roles:', rolesData);
+        setAvailableRoles(rolesData.roles || []);
+      } else {
+        console.error('Failed to load roles:', rolesResponse.status);
+      }
+
+      // Load Channels
+      const channelsResponse = await fetch(`${BOT_API_URL}/api/guild/channels`);
+      if (channelsResponse.ok) {
+        const channelsData = await channelsResponse.json();
+        console.log('Loaded channels:', channelsData);
+        setAvailableChannels(channelsData.channels || []);
+      } else {
+        console.error('Failed to load channels:', channelsResponse.status);
+      }
+    } catch (err) {
+      console.error('Failed to load Discord data:', err);
+    }
+  };
 
   const loadSettings = async () => {
     try {
@@ -217,11 +264,25 @@ export default function SettingsPage() {
     }
   };
 
-  const addRole = () => {
-    if (newRoleId && !selectedRoles.includes(newRoleId)) {
-      setSelectedRoles([...selectedRoles, newRoleId]);
-      setNewRoleId('');
-    }
+  const getRoleName = (roleId: string) => {
+    const role = availableRoles.find(r => r.id === roleId);
+    return role ? role.name : roleId;
+  };
+
+  const getRoleColor = (roleId: string) => {
+    const role = availableRoles.find(r => r.id === roleId);
+    return role ? role.color_hex : '#99aab5';
+  };
+
+  const getChannelName = (channelId: string) => {
+    const channel = availableChannels.find(c => c.id === channelId);
+    return channel ? channel.name : channelId;
+  };
+
+  const getChannelIcon = (channelId: string) => {
+    const channel = availableChannels.find(c => c.id === channelId);
+    if (!channel) return '#';
+    return channel.type === 2 ? '🔊' : '#'; // 2 = Voice, sonst Text
   };
 
   if (!permissions.isAdmin) {
@@ -267,22 +328,64 @@ export default function SettingsPage() {
             <div className="space-y-2 mb-3">
               {selectedRoles.map(roleId => (
                 <div key={roleId} className="flex items-center justify-between bg-gray-700 p-3 rounded">
-                  <span className="text-white">&lt;@&{roleId}&gt;</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: getRoleColor(roleId) }}></div>
+                    <span className="text-white font-medium">{getRoleName(roleId)}</span>
+                  </div>
                   <button onClick={() => setSelectedRoles(selectedRoles.filter(r => r !== roleId))} className="text-red-400 hover:text-red-300">
                     <X size={18} />
                   </button>
                 </div>
               ))}
             </div>
-            <div className="flex gap-2">
-              <input type="text" value={newRoleId} onChange={(e) => setNewRoleId(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addRole()} placeholder="Enter Role ID..." className="flex-1 bg-gray-700 text-white px-4 py-2 rounded border border-gray-600" />
-              <button onClick={addRole} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"><Plus size={18} /></button>
-            </div>
+            <select
+              onChange={(e) => {
+                const roleId = e.target.value;
+                if (roleId && !selectedRoles.includes(roleId)) {
+                  setSelectedRoles([...selectedRoles, roleId]);
+                  e.target.value = '';
+                }
+              }}
+              className="w-full bg-gray-700 text-white px-4 py-2 rounded border border-gray-600"
+              defaultValue=""
+            >
+              <option value="" disabled>Select a role...</option>
+              {availableRoles
+                .filter(role => !selectedRoles.includes(role.id))
+                .sort((a, b) => b.position - a.position)
+                .map(role => (
+                  <option key={role.id} value={role.id}>
+                    {role.name}
+                  </option>
+                ))}
+            </select>
           </div>
 
           <div className="mb-6">
-            <label className="block text-white text-sm font-medium mb-2">Moderation Log Channel ID</label>
-            <input type="text" value={moderationChannel} onChange={(e) => setModerationChannel(e.target.value)} placeholder="Enter Channel ID..." className="w-full bg-gray-700 text-white px-4 py-2 rounded border border-gray-600" />
+            <label className="block text-white text-sm font-medium mb-2">Moderation Log Channel</label>
+            {moderationChannel && (
+              <div className="mb-2 flex items-center justify-between bg-gray-700 p-3 rounded">
+                <span className="text-white">{getChannelIcon(moderationChannel)} {getChannelName(moderationChannel)}</span>
+                <button onClick={() => setModerationChannel('')} className="text-red-400 hover:text-red-300">
+                  <X size={18} />
+                </button>
+              </div>
+            )}
+            <select
+              value={moderationChannel}
+              onChange={(e) => setModerationChannel(e.target.value)}
+              className="w-full bg-gray-700 text-white px-4 py-2 rounded border border-gray-600"
+            >
+              <option value="">No channel selected</option>
+              {availableChannels
+                .filter(ch => ch.type === 0)
+                .sort((a, b) => a.position - b.position)
+                .map(channel => (
+                  <option key={channel.id} value={channel.id}>
+                    # {channel.name}
+                  </option>
+                ))}
+            </select>
           </div>
 
           <div className="space-y-3 mb-6">
@@ -314,8 +417,8 @@ export default function SettingsPage() {
               {settings.create_voice_settings.map(cv => (
                 <div key={cv.id} className="flex items-center justify-between bg-gray-700 p-3 rounded">
                   <div className="text-white">
-                    <div className="font-medium">&lt;#{cv.channel_id}&gt;</div>
-                    <div className="text-sm text-gray-400">Max Users: {cv.default_user_limit || 'Unlimited'} | Control: &lt;#{cv.control_channel_id}&gt;</div>
+                    <div className="font-medium">🔊 {getChannelName(cv.channel_id)}</div>
+                    <div className="text-sm text-gray-400">Max Users: {cv.default_user_limit || 'Unlimited'} | Control: # {getChannelName(cv.control_channel_id)}</div>
                   </div>
                   <button onClick={() => deleteCreateVoice(cv.channel_id)} className="text-red-400 hover:text-red-300"><Trash2 size={18} /></button>
                 </div>
@@ -325,16 +428,44 @@ export default function SettingsPage() {
 
           <div className="space-y-3">
             <div>
-              <label className="block text-white text-sm font-medium mb-2">Voice Channel ID</label>
-              <input type="text" value={newCreateVoice.channel_id} onChange={(e) => setNewCreateVoice({ ...newCreateVoice, channel_id: e.target.value })} placeholder="Enter Voice Channel ID..." className="w-full bg-gray-700 text-white px-4 py-2 rounded border border-gray-600" />
+              <label className="block text-white text-sm font-medium mb-2">Voice Channel</label>
+              <select
+                value={newCreateVoice.channel_id}
+                onChange={(e) => setNewCreateVoice({ ...newCreateVoice, channel_id: e.target.value })}
+                className="w-full bg-gray-700 text-white px-4 py-2 rounded border border-gray-600"
+              >
+                <option value="">Select a voice channel...</option>
+                {availableChannels
+                  .filter(ch => ch.type === 2)
+                  .sort((a, b) => a.position - b.position)
+                  .map(channel => (
+                    <option key={channel.id} value={channel.id}>
+                      🔊 {channel.name}
+                    </option>
+                  ))}
+              </select>
             </div>
             <div>
               <label className="block text-white text-sm font-medium mb-2">Default User Limit (0 = Unlimited)</label>
               <input type="number" min="0" max="99" value={newCreateVoice.default_user_limit} onChange={(e) => setNewCreateVoice({ ...newCreateVoice, default_user_limit: parseInt(e.target.value) || 0 })} className="w-full bg-gray-700 text-white px-4 py-2 rounded border border-gray-600" />
             </div>
             <div>
-              <label className="block text-white text-sm font-medium mb-2">Control Panel Channel ID</label>
-              <input type="text" value={newCreateVoice.control_channel_id} onChange={(e) => setNewCreateVoice({ ...newCreateVoice, control_channel_id: e.target.value })} placeholder="Enter Text Channel ID..." className="w-full bg-gray-700 text-white px-4 py-2 rounded border border-gray-600" />
+              <label className="block text-white text-sm font-medium mb-2">Control Panel Channel</label>
+              <select
+                value={newCreateVoice.control_channel_id}
+                onChange={(e) => setNewCreateVoice({ ...newCreateVoice, control_channel_id: e.target.value })}
+                className="w-full bg-gray-700 text-white px-4 py-2 rounded border border-gray-600"
+              >
+                <option value="">Select a text channel...</option>
+                {availableChannels
+                  .filter(ch => ch.type === 0)
+                  .sort((a, b) => a.position - b.position)
+                  .map(channel => (
+                    <option key={channel.id} value={channel.id}>
+                      # {channel.name}
+                    </option>
+                  ))}
+              </select>
             </div>
             <button onClick={addCreateVoice} className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded flex items-center justify-center gap-2 transition-colors">
               <Plus size={18} />
@@ -355,7 +486,7 @@ export default function SettingsPage() {
               {settings.purge_settings.map(purge => (
                 <div key={purge.id} className="flex items-center justify-between bg-gray-700 p-3 rounded">
                   <div className="text-white">
-                    <div className="font-medium">&lt;#{purge.channel_id}&gt;</div>
+                    <div className="font-medium"># {getChannelName(purge.channel_id)}</div>
                     <div className="text-sm text-gray-400">Daily at {purge.schedule_time} | {purge.enabled ? '✅ Enabled' : '❌ Disabled'}</div>
                   </div>
                   <button onClick={() => deletePurge(purge.channel_id)} className="text-red-400 hover:text-red-300"><Trash2 size={18} /></button>
@@ -366,8 +497,22 @@ export default function SettingsPage() {
 
           <div className="space-y-3">
             <div>
-              <label className="block text-white text-sm font-medium mb-2">Channel ID to Purge</label>
-              <input type="text" value={newPurge.channel_id} onChange={(e) => setNewPurge({ ...newPurge, channel_id: e.target.value })} placeholder="Enter Channel ID..." className="w-full bg-gray-700 text-white px-4 py-2 rounded border border-gray-600" />
+              <label className="block text-white text-sm font-medium mb-2">Channel to Purge</label>
+              <select
+                value={newPurge.channel_id}
+                onChange={(e) => setNewPurge({ ...newPurge, channel_id: e.target.value })}
+                className="w-full bg-gray-700 text-white px-4 py-2 rounded border border-gray-600"
+              >
+                <option value="">Select a channel...</option>
+                {availableChannels
+                  .filter(ch => ch.type === 0)
+                  .sort((a, b) => a.position - b.position)
+                  .map(channel => (
+                    <option key={channel.id} value={channel.id}>
+                      # {channel.name}
+                    </option>
+                  ))}
+              </select>
             </div>
             <div>
               <label className="block text-white text-sm font-medium mb-2">Daily Time (24h format)</label>

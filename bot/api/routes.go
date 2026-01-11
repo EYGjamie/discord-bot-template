@@ -22,6 +22,10 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux.HandleFunc("/api/guild/channel-count", handlers.GuildChannelCountHandler(s.botSession, s.botDB))
 	mux.HandleFunc("/api/guild/voice-user-count", handlers.GuildVoiceUserCountHandler(s.botSession, s.botDB))
 
+	// Guild Data Endpoints (für Settings)
+	mux.HandleFunc("/api/guild/roles", handlers.GuildRolesHandler(s.botSession, s.botDB))
+	mux.HandleFunc("/api/guild/channels", handlers.GuildChannelsHandler(s.botSession, s.botDB))
+
 	// Wrap mit CORS Middleware
 	return s.corsMiddleware(mux)
 }
