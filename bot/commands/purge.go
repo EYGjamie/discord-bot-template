@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"time"
 
-	"discord-bot-template/shared/database/tables"
 	"discord-bot-template/bot/utils/logging"
+	"discord-bot-template/shared/database/tables"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -158,7 +158,7 @@ func HandlePurgeCommand(s *discordgo.Session, i *discordgo.InteractionCreate, db
 	if err != nil {
 		logger := logging.NewLogger(db, s, i.GuildID, "commands.purge")
 		logger.LogError("Purge Command Error", fmt.Sprintf("Failed to purge channel %s: %v", channelOption.Name, err), i.Member.User.ID)
-		
+
 		s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 			Content: strPtr(fmt.Sprintf("❌ Fehler beim Löschen der Nachrichten: %v", err)),
 		})
@@ -310,8 +310,8 @@ func handlePurgeScheduleList(s *discordgo.Session, i *discordgo.InteractionCreat
 		}
 
 		lastRun := "Noch nie"
-		if !setting.LastRun.IsZero() {
-			lastRun = setting.LastRun.Format("02.01.2006 15:04")
+		if setting.LastRun.Valid {
+			lastRun = setting.LastRun.Time.Format("02.01.2006 15:04")
 		}
 
 		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{

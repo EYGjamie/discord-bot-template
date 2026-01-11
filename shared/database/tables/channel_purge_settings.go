@@ -8,14 +8,14 @@ import (
 
 // ChannelPurgeSetting repräsentiert eine Channel-Purge-Einstellung in der Datenbank
 type ChannelPurgeSetting struct {
-	ID           int64     `json:"id"`
-	GuildID      string    `json:"guild_id"`
-	ChannelID    string    `json:"channel_id"`
-	ScheduleTime string    `json:"schedule_time"` // Format: "HH:MM" (24-Stunden-Format)
-	Enabled      bool      `json:"enabled"`
-	LastRun      time.Time `json:"last_run"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID           int64        `json:"id"`
+	GuildID      string       `json:"guild_id"`
+	ChannelID    string       `json:"channel_id"`
+	ScheduleTime string       `json:"schedule_time"` // Format: "HH:MM" (24-Stunden-Format)
+	Enabled      bool         `json:"enabled"`
+	LastRun      sql.NullTime `json:"last_run"`
+	CreatedAt    time.Time    `json:"created_at"`
+	UpdatedAt    time.Time    `json:"updated_at"`
 }
 
 // CreateChannelPurgeSettingsTable erstellt die Tabelle für Channel-Purge-Einstellungen

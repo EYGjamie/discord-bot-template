@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"discord-bot-template/bot/settings"
-	"discord-bot-template/shared/database/tables"
 	"discord-bot-template/bot/utils/logging"
+	"discord-bot-template/shared/database/tables"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -100,8 +100,8 @@ func (ps *PurgeScheduler) checkAndExecutePurges() {
 		// Prüfe ob die aktuelle Zeit mit der geplanten Zeit übereinstimmt
 		if currentHour == scheduleHour && currentMinute == scheduleMinute {
 			// Prüfe ob bereits heute ausgeführt wurde
-			if !setting.LastRun.IsZero() {
-				lastRunDay := setting.LastRun.Day()
+			if setting.LastRun.Valid {
+				lastRunDay := setting.LastRun.Time.Day()
 				currentDay := currentTime.Day()
 				if lastRunDay == currentDay {
 					// Bereits heute ausgeführt, überspringe
