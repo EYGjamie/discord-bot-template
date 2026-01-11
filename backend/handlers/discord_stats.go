@@ -220,7 +220,7 @@ func (h *DiscordStatsHandler) FetchAndSaveStatistics(source string) (*tables.Dis
 	// Berechne Total Voice Time bis jetzt
 	var totalVoiceTime sql.NullInt64
 	err := h.db.QueryRow(`
-		SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (COALESCE(left_at, NOW()) - joined_at))), 0)
+		SELECT CAST(COALESCE(SUM(EXTRACT(EPOCH FROM (COALESCE(left_at, NOW()) - joined_at))), 0) AS BIGINT)
 		FROM user_voice_logs
 	`).Scan(&totalVoiceTime)
 	if err != nil {
@@ -300,7 +300,7 @@ func getAdditionalStats(db *sql.DB) map[string]interface{} {
 	// Total Voice Time (in Sekunden)
 	var totalVoiceTime sql.NullInt64
 	err = db.QueryRow(`
-		SELECT SUM(EXTRACT(EPOCH FROM (left_at - joined_at))) 
+		SELECT CAST(COALESCE(SUM(EXTRACT(EPOCH FROM (left_at - joined_at))), 0) AS BIGINT)
 		FROM user_voice_logs 
 		WHERE left_at IS NOT NULL
 	`).Scan(&totalVoiceTime)
