@@ -167,6 +167,20 @@ func InitializeTables(db *sql.DB) error {
 	}
 	log.Println("Discord-Statistics table initialized successfully")
 
+	// Erstelle Boards-Tabelle (für Task-Management)
+	if err := tables.CreateBoardsTable(db); err != nil {
+		log.Printf("Error creating boards table: %v", err)
+		return err
+	}
+	log.Println("Boards table initialized successfully")
+
+	// Erstelle Tasks-Tabellen (für Task-Management)
+	if err := tables.CreateTasksTable(db); err != nil {
+		log.Printf("Error creating tasks tables: %v", err)
+		return err
+	}
+	log.Println("Tasks tables initialized successfully")
+
 	log.Println("All database tables initialized successfully")
 	return nil
 }

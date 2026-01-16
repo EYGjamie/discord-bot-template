@@ -9,6 +9,11 @@ import EventsPage from './pages/EventsPage';
 import MatchesPage from './pages/MatchesPage';
 import DiscordPage from './pages/DiscordPage';
 import SettingsPage from './pages/SettingsPage';
+import BoardsListPage from './pages/BoardsListPage';
+import CreateBoardPage from './pages/CreateBoardPage';
+import KanbanBoardPage from './pages/KanbanBoardPage';
+import TaskGroupsPage from './pages/TaskGroupsPage';
+import GroupPermissionsPage from './pages/GroupPermissionsPage';
 import DashboardLayout from './components/layout/DashboardLayout';
 import { ProtectedRoute } from './components/auth/PermissionGate';
 
@@ -74,7 +79,11 @@ function App() {
         
         {/* Public routes for guild members */}
         <Route path="/events" element={<AuthProtectedRoute><DashboardLayout><EventsPage /></DashboardLayout></AuthProtectedRoute>} />
-        <Route path="/tasks" element={<AuthProtectedRoute><DashboardLayout><div className="p-6 text-white">Tasks Page</div></DashboardLayout></AuthProtectedRoute>} />
+        <Route path="/tasks" element={<AuthProtectedRoute><DashboardLayout><BoardsListPage /></DashboardLayout></AuthProtectedRoute>} />
+        <Route path="/tasks/boards/new" element={<AuthProtectedRoute><DashboardLayout><CreateBoardPage /></DashboardLayout></AuthProtectedRoute>} />
+        <Route path="/tasks/boards/:boardId" element={<AuthProtectedRoute><DashboardLayout><KanbanBoardPage /></DashboardLayout></AuthProtectedRoute>} />
+        <Route path="/tasks/groups" element={<AuthProtectedRoute><DashboardLayout><TaskGroupsPage /></DashboardLayout></AuthProtectedRoute>} />
+        <Route path="/tasks/groups/:groupId/permissions" element={<AuthProtectedRoute><DashboardLayout><GroupPermissionsPage /></DashboardLayout></AuthProtectedRoute>} />
         <Route path="/matches" element={<AuthProtectedRoute><DashboardLayout><MatchesPage /></DashboardLayout></AuthProtectedRoute>} />
         <Route 
           path="/discord" 

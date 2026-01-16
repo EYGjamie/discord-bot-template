@@ -3,6 +3,7 @@ package server
 import (
 	"discord-bot-template/backend/handlers"
 	"discord-bot-template/backend/middleware"
+	"discord-bot-template/shared/database/tables"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -225,6 +226,153 @@ func (s *Server) RegisterRoutes() http.Handler {
 		middleware.RequireAuth(
 			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
 				handlers.DeletePurgeSetting(s.db.DB()),
+			),
+		),
+	)
+
+	// Task Management routes
+	boardsHandler := &handlers.BoardsHandler{DB: s.db.DB()}
+	tasksHandler := &handlers.TasksHandler{DB: s.db.DB()}
+	taskGroupsHandler := &handlers.TaskGroupsHandler{DB: s.db.DB()}
+	taskPermChecker := &middleware.TaskPermissionChecker{DB: s.db.DB()}
+	boardPermChecker := &middleware.BoardPermissionChecker{DB: s.db.DB()}
+
+	// Board routes (protected)
+	mux.HandleFunc("GET /api/boards", middleware.RequireAuth(http.HandlerFunc(boardsHandler.GetBoards)))
+	mux.HandleFunc("GET /api/boards/{id}",
+		middleware.RequireAuth(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				boardPermChecker.RequireBoardView()(http.HandlerFunc(boardsHandler.GetBoard)).ServeHTTP(w, r)
+			}),
+		),
+	)
+	mux.HandleFunc("POST /api/boards",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				http.HandlerFunc(boardsHandler.CreateBoard),
+			),
+		),
+	)
+	mux.HandleFunc("PUT /api/boards/{id}",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				http.HandlerFunc(boardsHandler.UpdateBoard),
+			),
+		),
+	)
+	mux.HandleFunc("DELETE /api/boards/{id}",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				http.HandlerFunc(boardsHandler.DeleteBoard),
+			),
+		),
+	)
+
+	// Board permission routes (admin only)
+	mux.HandleFunc("GET /api/boards/{id}/permissions",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				http.HandlerFunc(boardsHandler.GetBoardPermissions),
+			),
+		),
+	)
+	mux.HandleFunc("POST /api/boards/{id}/permissions",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				http.HandlerFunc(boardsHandler.SetBoardPermission),
+			),
+		),
+	)
+	mux.HandleFunc("DELETE /api/boards/{id}/permissions/{permissionId}",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				http.HandlerFunc(boardsHandler.DeleteBoardPermission),
+			),
+		),
+	)
+
+	// Task routes (protected with granular permissions)
+	mux.HandleFunc("GET /api/boards/{boardId}/tasks",
+		middleware.RequireAuth(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				boardPermChecker.RequireBoardView()(http.HandlerFunc(tasksHandler.GetBoardTasks)).ServeHTTP(w, r)
+			}),
+		),
+	)
+	mux.HandleFunc("GET /api/tasks/{id}",
+		middleware.RequireAuth(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				taskPermChecker.RequireTaskPermission(tables.PermissionReadTitle)(http.HandlerFunc(tasksHandler.GetTask)).ServeHTTP(w, r)
+			}),
+		),
+	)
+	mux.HandleFunc("POST /api/tasks", middleware.RequireAuth(http.HandlerFunc(tasksHandler.CreateTask)))
+	mux.HandleFunc("PUT /api/tasks/{id}",
+		middleware.RequireAuth(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				taskPermChecker.RequireTaskPermission(tables.PermissionEdit)(http.HandlerFunc(tasksHandler.UpdateTask)).ServeHTTP(w, r)
+			}),
+		),
+	)
+	mux.HandleFunc("PUT /api/tasks/{id}/move",
+		middleware.RequireAuth(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				taskPermChecker.RequireTaskPermission(tables.PermissionEdit)(http.HandlerFunc(tasksHandler.MoveTask)).ServeHTTP(w, r)
+			}),
+		),
+	)
+	mux.HandleFunc("DELETE /api/tasks/{id}",
+		middleware.RequireAuth(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				taskPermChecker.RequireTaskPermission(tables.PermissionDelete)(http.HandlerFunc(tasksHandler.DeleteTask)).ServeHTTP(w, r)
+			}),
+		),
+	)
+
+	// Task group routes (admin only)
+	mux.HandleFunc("GET /api/task-groups", middleware.RequireAuth(http.HandlerFunc(taskGroupsHandler.GetTaskGroups)))
+	mux.HandleFunc("GET /api/task-groups/{id}", middleware.RequireAuth(http.HandlerFunc(taskGroupsHandler.GetTaskGroup)))
+	mux.HandleFunc("POST /api/task-groups",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				http.HandlerFunc(taskGroupsHandler.CreateTaskGroup),
+			),
+		),
+	)
+	mux.HandleFunc("PUT /api/task-groups/{id}",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				http.HandlerFunc(taskGroupsHandler.UpdateTaskGroup),
+			),
+		),
+	)
+	mux.HandleFunc("DELETE /api/task-groups/{id}",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				http.HandlerFunc(taskGroupsHandler.DeleteTaskGroup),
+			),
+		),
+	)
+
+	// Task group permission routes (admin only)
+	mux.HandleFunc("GET /api/task-groups/{id}/permissions",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				http.HandlerFunc(taskGroupsHandler.GetTaskGroupPermissions),
+			),
+		),
+	)
+	mux.HandleFunc("POST /api/task-groups/{id}/permissions",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				http.HandlerFunc(taskGroupsHandler.SetTaskGroupPermission),
+			),
+		),
+	)
+	mux.HandleFunc("DELETE /api/task-groups/{id}/permissions/{permissionId}",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				http.HandlerFunc(taskGroupsHandler.DeleteTaskGroupPermission),
 			),
 		),
 	)
