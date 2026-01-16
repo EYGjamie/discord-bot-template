@@ -74,9 +74,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging = false, onClick }
       )}
 
       {/* Tags (only if can read content) */}
-      {canReadContent && task.tags && JSON.parse(task.tags).length > 0 && (
+      {canReadContent && task.tags && Array.isArray(task.tags) && task.tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-3">
-          {JSON.parse(task.tags).slice(0, 3).map((tag: string, index: number) => (
+          {task.tags.slice(0, 3).map((tag: string, index: number) => (
             <span
               key={index}
               className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded-full text-xs font-semibold"

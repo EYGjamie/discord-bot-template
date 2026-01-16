@@ -40,7 +40,7 @@ export interface Task {
   position: number;
   assignee_id?: string;
   due_date?: string;
-  tags: string; // JSON string of array
+  tags: string[]; // Array of tags
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -61,7 +61,7 @@ export interface FilteredTask {
   position: number;
   assignee_id?: string;
   due_date?: string;
-  tags?: string; // Only if permission >= read_content
+  tags?: string[]; // Only if permission >= read_content
   created_by?: string; // Only if permission >= read_content
   created_at: string;
   updated_at?: string; // Only if permission >= read_content

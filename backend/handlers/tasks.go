@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"discord-bot-template/backend/middleware"
@@ -15,6 +16,34 @@ type TasksHandler struct {
 	DB *sql.DB
 }
 
+// FlexibleDate handles both date-only ("2026-01-25") and datetime formats
+type FlexibleDate struct {
+	time.Time
+}
+
+func (fd *FlexibleDate) UnmarshalJSON(b []byte) error {
+	s := strings.Trim(string(b), `"`)
+	if s == "null" || s == "" {
+		return nil
+	}
+
+	// Try date-only format first
+	t, err := time.Parse("2006-01-02", s)
+	if err == nil {
+		fd.Time = t
+		return nil
+	}
+
+	// Try RFC3339 datetime format
+	t, err = time.Parse(time.RFC3339, s)
+	if err == nil {
+		fd.Time = t
+		return nil
+	}
+
+	return err
+}
+
 type CreateTaskRequest struct {
 	BoardID     int               `json:"board_id"`
 	GroupID     *int              `json:"group_id"`
@@ -22,7 +51,7 @@ type CreateTaskRequest struct {
 	Description string            `json:"description"`
 	Status      tables.TaskStatus `json:"status"`
 	AssigneeID  *string           `json:"assignee_id"`
-	DueDate     *time.Time        `json:"due_date"`
+	DueDate     *FlexibleDate     `json:"due_date"`
 	Tags        []string          `json:"tags"`
 }
 
@@ -32,7 +61,7 @@ type UpdateTaskRequest struct {
 	Status      tables.TaskStatus `json:"status"`
 	Position    *int              `json:"position"`
 	AssigneeID  *string           `json:"assignee_id"`
-	DueDate     *time.Time        `json:"due_date"`
+	DueDate     *FlexibleDate     `json:"due_date"`
 	Tags        []string          `json:"tags"`
 }
 
@@ -64,23 +93,40 @@ func (h *TasksHandler) GetBoardTasks(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	var tasks []tables.Task
+	var tasks []map[string]interface{}
 	for rows.Next() {
 		var task tables.Task
-		var tagsJSON string
 		err := rows.Scan(&task.ID, &task.BoardID, &task.GroupID, &task.Title, &task.Description,
-			&task.Status, &task.Position, &task.AssigneeID, &task.DueDate, &tagsJSON,
+			&task.Status, &task.Position, &task.AssigneeID, &task.DueDate, &task.Tags,
 			&task.CreatedBy, &task.CreatedAt, &task.UpdatedAt)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		task.Tags = tagsJSON
-		tasks = append(tasks, task)
+
+		// Convert task to map and add permission field
+		taskMap := map[string]interface{}{
+			"id":          task.ID,
+			"board_id":    task.BoardID,
+			"group_id":    task.GroupID,
+			"title":       task.Title,
+			"description": task.Description,
+			"status":      task.Status,
+			"position":    task.Position,
+			"assignee_id": task.AssigneeID,
+			"due_date":    task.DueDate,
+			"tags":        task.Tags,
+			"created_by":  task.CreatedBy,
+			"created_at":  task.CreatedAt,
+			"updated_at":  task.UpdatedAt,
+			"permission":  "edit", // Default permission for tasks without groups
+		}
+
+		tasks = append(tasks, taskMap)
 	}
 
 	if tasks == nil {
-		tasks = []tables.Task{}
+		tasks = []map[string]interface{}{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -103,10 +149,9 @@ func (h *TasksHandler) GetTask(w http.ResponseWriter, r *http.Request) {
 	`
 
 	var task tables.Task
-	var tagsJSON string
 	err = h.DB.QueryRow(query, taskID).Scan(
 		&task.ID, &task.BoardID, &task.GroupID, &task.Title, &task.Description,
-		&task.Status, &task.Position, &task.AssigneeID, &task.DueDate, &tagsJSON,
+		&task.Status, &task.Position, &task.AssigneeID, &task.DueDate, &task.Tags,
 		&task.CreatedBy, &task.CreatedAt, &task.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
@@ -117,8 +162,6 @@ func (h *TasksHandler) GetTask(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	task.Tags = tagsJSON
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(task)
@@ -147,13 +190,10 @@ func (h *TasksHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		req.Status = tables.TaskStatusToDo
 	}
 
-	// Serialize tags to JSON
-	tagsJSON := "[]"
-	if req.Tags != nil {
-		tagsBytes, err := json.Marshal(req.Tags)
-		if err == nil {
-			tagsJSON = string(tagsBytes)
-		}
+	// Convert tags to TagArray
+	tags := tables.TagArray(req.Tags)
+	if tags == nil {
+		tags = tables.TagArray([]string{})
 	}
 
 	query := `
@@ -165,20 +205,24 @@ func (h *TasksHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 	`
 
 	now := time.Now()
+
+	// Convert FlexibleDate to *time.Time
+	var dueDate *time.Time
+	if req.DueDate != nil && !req.DueDate.Time.IsZero() {
+		dueDate = &req.DueDate.Time
+	}
+
 	var task tables.Task
-	var tagsResult string
 	err := h.DB.QueryRow(query, req.BoardID, req.GroupID, req.Title, req.Description,
-		req.Status, req.AssigneeID, req.DueDate, tagsJSON, userID, now, now).Scan(
+		req.Status, req.AssigneeID, dueDate, tags, userID, now, now).Scan(
 		&task.ID, &task.BoardID, &task.GroupID, &task.Title, &task.Description,
-		&task.Status, &task.Position, &task.AssigneeID, &task.DueDate, &tagsResult,
+		&task.Status, &task.Position, &task.AssigneeID, &task.DueDate, &task.Tags,
 		&task.CreatedBy, &task.CreatedAt, &task.UpdatedAt,
 	)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	task.Tags = tagsResult
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -199,13 +243,10 @@ func (h *TasksHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Serialize tags to JSON
-	tagsJSON := "[]"
-	if req.Tags != nil {
-		tagsBytes, err := json.Marshal(req.Tags)
-		if err == nil {
-			tagsJSON = string(tagsBytes)
-		}
+	// Convert tags to TagArray
+	tags := tables.TagArray(req.Tags)
+	if tags == nil {
+		tags = tables.TagArray([]string{})
 	}
 
 	query := `
@@ -217,12 +258,17 @@ func (h *TasksHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 		          assignee_id, due_date, tags, created_by, created_at, updated_at
 	`
 
+	// Convert FlexibleDate to *time.Time
+	var dueDate *time.Time
+	if req.DueDate != nil && !req.DueDate.Time.IsZero() {
+		dueDate = &req.DueDate.Time
+	}
+
 	var task tables.Task
-	var tagsResult string
 	err = h.DB.QueryRow(query, req.Title, req.Description, req.Status, req.AssigneeID,
-		req.DueDate, tagsJSON, time.Now(), taskID).Scan(
+		dueDate, tags, time.Now(), taskID).Scan(
 		&task.ID, &task.BoardID, &task.GroupID, &task.Title, &task.Description,
-		&task.Status, &task.Position, &task.AssigneeID, &task.DueDate, &tagsResult,
+		&task.Status, &task.Position, &task.AssigneeID, &task.DueDate, &task.Tags,
 		&task.CreatedBy, &task.CreatedAt, &task.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
@@ -233,8 +279,6 @@ func (h *TasksHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	task.Tags = tagsResult
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(task)
@@ -263,10 +307,9 @@ func (h *TasksHandler) MoveTask(w http.ResponseWriter, r *http.Request) {
 	`
 
 	var task tables.Task
-	var tagsResult string
 	err = h.DB.QueryRow(query, req.Status, req.Position, time.Now(), taskID).Scan(
 		&task.ID, &task.BoardID, &task.GroupID, &task.Title, &task.Description,
-		&task.Status, &task.Position, &task.AssigneeID, &task.DueDate, &tagsResult,
+		&task.Status, &task.Position, &task.AssigneeID, &task.DueDate, &task.Tags,
 		&task.CreatedBy, &task.CreatedAt, &task.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
@@ -277,8 +320,6 @@ func (h *TasksHandler) MoveTask(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	task.Tags = tagsResult
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(task)

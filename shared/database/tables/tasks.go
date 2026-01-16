@@ -2,6 +2,8 @@ package tables
 
 import (
 	"database/sql"
+	"database/sql/driver"
+	"encoding/json"
 	"time"
 )
 
@@ -15,6 +17,45 @@ const (
 	TaskStatusDone       TaskStatus = "done"
 )
 
+// TagArray is a custom type for handling JSON array of tags
+type TagArray []string
+
+// Scan implements the sql.Scanner interface
+func (t *TagArray) Scan(value interface{}) error {
+	if value == nil {
+		*t = []string{}
+		return nil
+	}
+
+	bytes, ok := value.([]byte)
+	if !ok {
+		str, ok := value.(string)
+		if !ok {
+			*t = []string{}
+			return nil
+		}
+		bytes = []byte(str)
+	}
+
+	return json.Unmarshal(bytes, t)
+}
+
+// Value implements the driver.Valuer interface
+func (t TagArray) Value() (driver.Value, error) {
+	if t == nil {
+		return "[]", nil
+	}
+	return json.Marshal(t)
+}
+
+// MarshalJSON implements json.Marshaler
+func (t TagArray) MarshalJSON() ([]byte, error) {
+	if t == nil {
+		return []byte("[]"), nil
+	}
+	return json.Marshal([]string(t))
+}
+
 // Task represents a task in a Kanban board
 type Task struct {
 	ID          int        `json:"id" db:"id"`
@@ -26,7 +67,7 @@ type Task struct {
 	Position    int        `json:"position" db:"position"`
 	AssigneeID  *string    `json:"assignee_id,omitempty" db:"assignee_id"` // Discord user ID
 	DueDate     *time.Time `json:"due_date,omitempty" db:"due_date"`
-	Tags        string     `json:"tags" db:"tags"` // JSON array of strings
+	Tags        TagArray   `json:"tags" db:"tags"` // JSON array of strings
 	CreatedBy   string     `json:"created_by" db:"created_by"`
 	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`

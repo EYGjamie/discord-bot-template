@@ -12,6 +12,7 @@ import SettingsPage from './pages/SettingsPage';
 import BoardsListPage from './pages/BoardsListPage';
 import CreateBoardPage from './pages/CreateBoardPage';
 import KanbanBoardPage from './pages/KanbanBoardPage';
+import BoardSettingsPage from './pages/BoardSettingsPage';
 import TaskGroupsPage from './pages/TaskGroupsPage';
 import GroupPermissionsPage from './pages/GroupPermissionsPage';
 import DashboardLayout from './components/layout/DashboardLayout';
@@ -82,6 +83,7 @@ function App() {
         <Route path="/tasks" element={<AuthProtectedRoute><DashboardLayout><BoardsListPage /></DashboardLayout></AuthProtectedRoute>} />
         <Route path="/tasks/boards/new" element={<AuthProtectedRoute><DashboardLayout><CreateBoardPage /></DashboardLayout></AuthProtectedRoute>} />
         <Route path="/tasks/boards/:boardId" element={<AuthProtectedRoute><DashboardLayout><KanbanBoardPage /></DashboardLayout></AuthProtectedRoute>} />
+        <Route path="/tasks/boards/:boardId/settings" element={<AuthProtectedRoute><DashboardLayout><BoardSettingsPage /></DashboardLayout></AuthProtectedRoute>} />
         <Route path="/tasks/groups" element={<AuthProtectedRoute><DashboardLayout><TaskGroupsPage /></DashboardLayout></AuthProtectedRoute>} />
         <Route path="/tasks/groups/:groupId/permissions" element={<AuthProtectedRoute><DashboardLayout><GroupPermissionsPage /></DashboardLayout></AuthProtectedRoute>} />
         <Route path="/matches" element={<AuthProtectedRoute><DashboardLayout><MatchesPage /></DashboardLayout></AuthProtectedRoute>} />

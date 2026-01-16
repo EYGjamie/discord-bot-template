@@ -22,7 +22,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, boardId, onClose, onUpdate 
     status: task?.status || 'todo' as TaskStatus,
     assignee_id: task?.assignee_id || '',
     due_date: task?.due_date ? task.due_date.split('T')[0] : '',
-    tags: (task && 'tags' in task && task.tags) ? JSON.parse(task.tags) : [],
+    tags: (task && 'tags' in task && Array.isArray(task.tags)) ? task.tags : [],
     group_id: (task && 'group_id' in task) ? task.group_id : undefined,
   });
   const [tagInput, setTagInput] = useState('');
