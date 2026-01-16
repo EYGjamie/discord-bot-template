@@ -9,8 +9,6 @@ import (
 	"strings"
 
 	"discord-bot-template/shared/database/tables"
-
-	"github.com/gorilla/mux"
 )
 
 // TaskPermissionChecker provides methods to check task permissions
@@ -107,10 +105,9 @@ func (c *TaskPermissionChecker) GetUserGroupPermission(groupID int, userID strin
 func (c *TaskPermissionChecker) RequireTaskPermission(required tables.PermissionLevel) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			vars := mux.Vars(r)
-			taskIDStr := vars["id"]
+			taskIDStr := r.PathValue("id")
 			if taskIDStr == "" {
-				taskIDStr = vars["taskId"]
+				taskIDStr = r.PathValue("taskId")
 			}
 
 			taskID, err := strconv.Atoi(taskIDStr)
@@ -119,7 +116,11 @@ func (c *TaskPermissionChecker) RequireTaskPermission(required tables.Permission
 				return
 			}
 
-			userID := r.Context().Value("user_id").(string)
+			userID := GetUserIDFromContext(r.Context())
+			if userID == "" {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
 
 			// Get user roles from context (should be set by auth middleware)
 			var userRoles []string
@@ -212,6 +213,21 @@ func (c *TaskPermissionChecker) FilterTasksByPermission(tasks []tables.Task, use
 
 // GetUserBoardPermission checks if user has access to a board
 func (b *BoardPermissionChecker) GetUserBoardPermission(boardID int, userID string, userRoles []string) (canView bool, canCreate bool, err error) {
+	// Check if any permissions exist for this board
+	var permissionCount int
+	err = b.DB.QueryRow(`
+		SELECT COUNT(*) FROM board_permissions WHERE board_id = $1
+	`, boardID).Scan(&permissionCount)
+
+	if err != nil {
+		return false, false, err
+	}
+
+	// If no permissions are set for this board, allow all authenticated users
+	if permissionCount == 0 {
+		return true, true, nil
+	}
+
 	// Check user-specific permission
 	var userCanView, userCanCreate sql.NullBool
 	err = b.DB.QueryRow(`
@@ -259,10 +275,12 @@ func (b *BoardPermissionChecker) GetUserBoardPermission(boardID int, userID stri
 			}
 		}
 
-		return canView, canCreate, nil
+		if canView || canCreate {
+			return canView, canCreate, nil
+		}
 	}
 
-	// Default: no access
+	// Default: no access if permissions exist but user doesn't have any
 	return false, false, nil
 }
 
@@ -270,10 +288,9 @@ func (b *BoardPermissionChecker) GetUserBoardPermission(boardID int, userID stri
 func (b *BoardPermissionChecker) RequireBoardView() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			vars := mux.Vars(r)
-			boardIDStr := vars["id"]
+			boardIDStr := r.PathValue("id")
 			if boardIDStr == "" {
-				boardIDStr = vars["boardId"]
+				boardIDStr = r.PathValue("boardId")
 			}
 
 			boardID, err := strconv.Atoi(boardIDStr)
@@ -282,7 +299,11 @@ func (b *BoardPermissionChecker) RequireBoardView() func(http.Handler) http.Hand
 				return
 			}
 
-			userID := r.Context().Value("user_id").(string)
+			userID := GetUserIDFromContext(r.Context())
+			if userID == "" {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
 
 			var userRoles []string
 			if roles := r.Context().Value("user_roles"); roles != nil {
@@ -316,7 +337,11 @@ func (b *BoardPermissionChecker) RequireBoardCreate() func(http.Handler) http.Ha
 				return
 			}
 
-			userID := r.Context().Value("user_id").(string)
+			userID := GetUserIDFromContext(r.Context())
+			if userID == "" {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
 
 			var userRoles []string
 			if roles := r.Context().Value("user_roles"); roles != nil {
