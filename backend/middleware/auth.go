@@ -2,7 +2,9 @@ package middleware
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -14,6 +16,7 @@ import (
 type contextKey string
 
 const UserIDKey contextKey = "user_id"
+const UserRolesKey contextKey = "user_roles"
 
 // validateJWT validates a JWT token and returns the claims
 func validateJWT(tokenString string) (*Claims, error) {
@@ -84,6 +87,49 @@ func RequireAuth(next http.HandlerFunc) http.HandlerFunc {
 		ctx := NewContextWithUserID(r.Context(), userID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
+}
+
+// RequireAuthWithDB ist ein Middleware mit DB-Zugriff für Rollen
+func RequireAuthWithDB(db *sql.DB) func(http.HandlerFunc) http.HandlerFunc {
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			userID := GetUserIDFromRequest(r)
+			if userID == "" {
+				http.Error(w, "Unauthorized: User not authenticated", http.StatusUnauthorized)
+				return
+			}
+
+			// User-ID im Context speichern
+			ctx := NewContextWithUserID(r.Context(), userID)
+
+			// User-Rollen aus der Datenbank laden
+			userRoles := getUserRoles(db, userID)
+			ctx = context.WithValue(ctx, UserRolesKey, userRoles)
+
+			next.ServeHTTP(w, r.WithContext(ctx))
+		}
+	}
+}
+
+// getUserRoles lädt die Rollen-IDs eines Users aus der Datenbank
+func getUserRoles(db *sql.DB, userID string) []string {
+	query := `SELECT role_id FROM user_roles WHERE user_id = $1`
+	rows, err := db.Query(query, userID)
+	if err != nil {
+		log.Printf("Error loading user roles: %v", err)
+		return []string{}
+	}
+	defer rows.Close()
+
+	var roles []string
+	for rows.Next() {
+		var roleID string
+		if err := rows.Scan(&roleID); err == nil {
+			roles = append(roles, roleID)
+		}
+	}
+
+	return roles
 }
 
 // GetUserIDFromContext holt die User-ID aus dem Request Context

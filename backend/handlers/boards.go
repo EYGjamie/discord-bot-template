@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"discord-bot-template/backend/middleware"
@@ -36,11 +37,32 @@ type BoardPermissionRequest struct {
 	CanViewTaskList bool    `json:"can_view_task_list"`
 	CanViewTasks    bool    `json:"can_view_tasks"`
 	CanEditTasks    bool    `json:"can_edit_tasks"`
+	CanEditBoard    bool    `json:"can_edit_board"`
 }
 
-// GetBoards returns all boards for a guild
+// GetBoards returns all boards for a guild (filtered by user permissions)
 func (h *BoardsHandler) GetBoards(w http.ResponseWriter, r *http.Request) {
 	guildID := os.Getenv("GUILD_ID")
+	userID := middleware.GetUserIDFromContext(r.Context())
+
+	// Get user roles from context
+	var userRoles []string
+	if roles := r.Context().Value(middleware.UserRolesKey); roles != nil {
+		userRoles = roles.([]string)
+	}
+
+	// Check if user is admin
+	adminRoleIDs := strings.Split(os.Getenv("ADMIN_ROLE_IDS"), ",")
+	isAdmin := false
+	for _, adminRole := range adminRoleIDs {
+		adminRole = strings.TrimSpace(adminRole)
+		for _, userRole := range userRoles {
+			if userRole == adminRole {
+				isAdmin = true
+				break
+			}
+		}
+	}
 
 	query := `
 		SELECT id, guild_id, name, description, color, position, created_by, created_at, updated_at
@@ -65,7 +87,18 @@ func (h *BoardsHandler) GetBoards(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		boards = append(boards, board)
+
+		// If user is admin, include all boards
+		if isAdmin {
+			boards = append(boards, board)
+			continue
+		}
+
+		// Check if user has permission to view this board
+		canView, _, err := (&middleware.BoardPermissionChecker{DB: h.DB}).GetUserBoardPermission(board.ID, userID, userRoles)
+		if err == nil && canView {
+			boards = append(boards, board)
+		}
 	}
 
 	if boards == nil {
@@ -232,10 +265,18 @@ func (h *BoardsHandler) GetBoardPermissions(w http.ResponseWriter, r *http.Reque
 	}
 
 	query := `
-		SELECT id, board_id, role_id, user_id, can_view_board, can_view_task_list, can_view_tasks, can_edit_tasks, created_at
-		FROM board_permissions
-		WHERE board_id = $1
-		ORDER BY created_at
+		SELECT 
+			bp.id, bp.board_id, bp.role_id, bp.user_id, 
+			bp.can_view_board, bp.can_view_task_list, bp.can_view_tasks, bp.can_edit_tasks, bp.can_edit_board,
+			bp.created_at,
+			r.name as role_name,
+			u.name as user_name,
+			COALESCE(u.display_name, u.name) as user_display_name
+		FROM board_permissions bp
+		LEFT JOIN roles r ON bp.role_id = r.id
+		LEFT JOIN users u ON bp.user_id = u.id
+		WHERE bp.board_id = $1
+		ORDER BY bp.created_at
 	`
 
 	rows, err := h.DB.Query(query, boardID)
@@ -245,11 +286,28 @@ func (h *BoardsHandler) GetBoardPermissions(w http.ResponseWriter, r *http.Reque
 	}
 	defer rows.Close()
 
-	var permissions []tables.BoardPermission
+	type PermissionResponse struct {
+		ID              int       `json:"id"`
+		BoardID         int       `json:"board_id"`
+		RoleID          *string   `json:"role_id"`
+		UserID          *string   `json:"user_id"`
+		RoleName        *string   `json:"role_name"`
+		UserName        *string   `json:"user_name"`
+		UserDisplayName *string   `json:"user_display_name"`
+		CanViewBoard    bool      `json:"can_view_board"`
+		CanViewTaskList bool      `json:"can_view_task_list"`
+		CanViewTasks    bool      `json:"can_view_tasks"`
+		CanEditTasks    bool      `json:"can_edit_tasks"`
+		CanEditBoard    bool      `json:"can_edit_board"`
+		CreatedAt       time.Time `json:"created_at"`
+	}
+
+	var permissions []PermissionResponse
 	for rows.Next() {
-		var perm tables.BoardPermission
+		var perm PermissionResponse
 		err := rows.Scan(&perm.ID, &perm.BoardID, &perm.RoleID, &perm.UserID,
-			&perm.CanViewBoard, &perm.CanViewTaskList, &perm.CanViewTasks, &perm.CanEditTasks, &perm.CreatedAt)
+			&perm.CanViewBoard, &perm.CanViewTaskList, &perm.CanViewTasks, &perm.CanEditTasks, &perm.CanEditBoard, &perm.CreatedAt,
+			&perm.RoleName, &perm.UserName, &perm.UserDisplayName)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -258,7 +316,7 @@ func (h *BoardsHandler) GetBoardPermissions(w http.ResponseWriter, r *http.Reque
 	}
 
 	if permissions == nil {
-		permissions = []tables.BoardPermission{}
+		permissions = []PermissionResponse{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -300,23 +358,23 @@ func (h *BoardsHandler) SetBoardPermission(w http.ResponseWriter, r *http.Reques
 	case sql.ErrNoRows:
 		// Create new permission
 		query := `
-			INSERT INTO board_permissions (board_id, role_id, user_id, can_view_board, can_view_task_list, can_view_tasks, can_edit_tasks, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-			RETURNING id, board_id, role_id, user_id, can_view_board, can_view_task_list, can_view_tasks, can_edit_tasks, created_at
+			INSERT INTO board_permissions (board_id, role_id, user_id, can_view_board, can_view_task_list, can_view_tasks, can_edit_tasks, can_edit_board, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			RETURNING id, board_id, role_id, user_id, can_view_board, can_view_task_list, can_view_tasks, can_edit_tasks, can_edit_board, created_at
 		`
-		err = h.DB.QueryRow(query, boardID, req.RoleID, req.UserID, req.CanViewBoard, req.CanViewTaskList, req.CanViewTasks, req.CanEditTasks, time.Now()).Scan(
-			&perm.ID, &perm.BoardID, &perm.RoleID, &perm.UserID, &perm.CanViewBoard, &perm.CanViewTaskList, &perm.CanViewTasks, &perm.CanEditTasks, &perm.CreatedAt,
+		err = h.DB.QueryRow(query, boardID, req.RoleID, req.UserID, req.CanViewBoard, req.CanViewTaskList, req.CanViewTasks, req.CanEditTasks, req.CanEditBoard, time.Now()).Scan(
+			&perm.ID, &perm.BoardID, &perm.RoleID, &perm.UserID, &perm.CanViewBoard, &perm.CanViewTaskList, &perm.CanViewTasks, &perm.CanEditTasks, &perm.CanEditBoard, &perm.CreatedAt,
 		)
 	case nil:
 		// Update existing permission
 		query := `
 			UPDATE board_permissions
-			SET can_view_board = $1, can_view_task_list = $2, can_view_tasks = $3, can_edit_tasks = $4
-			WHERE id = $5
-			RETURNING id, board_id, role_id, user_id, can_view_board, can_view_task_list, can_view_tasks, can_edit_tasks, created_at
+			SET can_view_board = $1, can_view_task_list = $2, can_view_tasks = $3, can_edit_tasks = $4, can_edit_board = $5
+			WHERE id = $6
+			RETURNING id, board_id, role_id, user_id, can_view_board, can_view_task_list, can_view_tasks, can_edit_tasks, can_edit_board, created_at
 		`
-		err = h.DB.QueryRow(query, req.CanViewBoard, req.CanViewTaskList, req.CanViewTasks, req.CanEditTasks, existingID).Scan(
-			&perm.ID, &perm.BoardID, &perm.RoleID, &perm.UserID, &perm.CanViewBoard, &perm.CanViewTaskList, &perm.CanViewTasks, &perm.CanEditTasks, &perm.CreatedAt,
+		err = h.DB.QueryRow(query, req.CanViewBoard, req.CanViewTaskList, req.CanViewTasks, req.CanEditTasks, req.CanEditBoard, existingID).Scan(
+			&perm.ID, &perm.BoardID, &perm.RoleID, &perm.UserID, &perm.CanViewBoard, &perm.CanViewTaskList, &perm.CanViewTasks, &perm.CanEditTasks, &perm.CanEditBoard, &perm.CreatedAt,
 		)
 	}
 
@@ -351,4 +409,43 @@ func (h *BoardsHandler) DeleteBoardPermission(w http.ResponseWriter, r *http.Req
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// UpdateBoardPermission updates an existing board permission
+func (h *BoardsHandler) UpdateBoardPermission(w http.ResponseWriter, r *http.Request) {
+	permissionID, err := strconv.Atoi(r.PathValue("permissionId"))
+	if err != nil {
+		http.Error(w, "Invalid permission ID", http.StatusBadRequest)
+		return
+	}
+
+	var req BoardPermissionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	query := `
+		UPDATE board_permissions
+		SET can_view_board = $1, can_view_task_list = $2, can_view_tasks = $3, can_edit_tasks = $4, can_edit_board = $5
+		WHERE id = $6
+		RETURNING id
+	`
+
+	var id int
+	err = h.DB.QueryRow(query, req.CanViewBoard, req.CanViewTaskList, req.CanViewTasks, req.CanEditTasks, req.CanEditBoard, permissionID).Scan(&id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Permission not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"id":      id,
+		"message": "Permission updated successfully",
+	})
 }

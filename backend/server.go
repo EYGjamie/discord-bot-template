@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -26,6 +27,17 @@ func NewServer() *http.Server {
 		port: port,
 
 		db: database.New(),
+	}
+
+	// Initialize database tables (idempotent - safe to call multiple times)
+	db := NewServer.db.DB()
+	if err := database.InitializeTables(db); err != nil {
+		log.Printf("Warning: Failed to initialize database tables: %v", err)
+	}
+
+	// Run database migrations
+	if err := database.RunMigrations(db); err != nil {
+		log.Printf("Warning: Failed to run database migrations: %v", err)
 	}
 
 	// Initialisiere und starte den Discord Stats Scheduler

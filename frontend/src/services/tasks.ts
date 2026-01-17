@@ -51,6 +51,14 @@ export const boardsService = {
     return await api.post(`/api/boards/${boardId}/permissions`, data);
   },
 
+  updatePermission: async (
+    boardId: number,
+    permissionId: number,
+    data: Partial<SetBoardPermissionRequest>
+  ): Promise<void> => {
+    await api.put(`/api/boards/${boardId}/permissions/${permissionId}`, data);
+  },
+
   deletePermission: async (boardId: number, permissionId: number): Promise<void> => {
     await api.delete(`/api/boards/${boardId}/permissions/${permissionId}`);
   },

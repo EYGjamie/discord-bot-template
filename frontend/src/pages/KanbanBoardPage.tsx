@@ -178,7 +178,7 @@ const KanbanBoardPage: React.FC = () => {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/tasks/boards')}
+              onClick={() => navigate('/tasks')}
               className="p-2 hover:bg-white/10 rounded-lg transition-colors"
             >
               <ArrowLeft size={20} className="text-white" />

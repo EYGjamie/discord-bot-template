@@ -31,9 +31,10 @@ func GetDiscordRolesAndMembers(db *sql.DB) http.HandlerFunc {
 
 		// Get members with basic info
 		membersQuery := `
-			SELECT user_id, username, discriminator, avatar, nickname 
-			FROM members 
-			ORDER BY COALESCE(nickname, username)
+			SELECT id, name, COALESCE(display_name, name) as display_name, avatar 
+			FROM users 
+			WHERE bot = false
+			ORDER BY display_name
 		`
 		membersRows, err := db.Query(membersQuery)
 		if err != nil {
@@ -43,26 +44,18 @@ func GetDiscordRolesAndMembers(db *sql.DB) http.HandlerFunc {
 		defer membersRows.Close()
 
 		type MemberInfo struct {
-			UserID        string  `json:"user_id"`
-			Username      string  `json:"username"`
-			Discriminator string  `json:"discriminator"`
-			Avatar        *string `json:"avatar"`
-			Nickname      *string `json:"nickname"`
-			DisplayName   string  `json:"display_name"`
+			UserID      string  `json:"user_id"`
+			Username    string  `json:"username"`
+			DisplayName string  `json:"display_name"`
+			Avatar      *string `json:"avatar"`
 		}
 
 		var members []MemberInfo
 		for membersRows.Next() {
 			var member MemberInfo
-			err := membersRows.Scan(&member.UserID, &member.Username, &member.Discriminator, &member.Avatar, &member.Nickname)
+			err := membersRows.Scan(&member.UserID, &member.Username, &member.DisplayName, &member.Avatar)
 			if err != nil {
 				continue
-			}
-			// Set display name
-			if member.Nickname != nil && *member.Nickname != "" {
-				member.DisplayName = *member.Nickname
-			} else {
-				member.DisplayName = member.Username
 			}
 			members = append(members, member)
 		}
@@ -94,10 +87,13 @@ func SearchMembers(db *sql.DB) http.HandlerFunc {
 		}
 
 		searchQuery := `
-			SELECT user_id, username, discriminator, avatar, nickname 
-			FROM members 
-			WHERE LOWER(username) LIKE LOWER($1) OR LOWER(COALESCE(nickname, '')) LIKE LOWER($1)
-			ORDER BY COALESCE(nickname, username)
+			SELECT id, name, COALESCE(display_name, name) as display_name, avatar 
+			FROM users 
+			WHERE bot = false AND (
+				LOWER(name) LIKE LOWER($1) OR 
+				LOWER(COALESCE(display_name, '')) LIKE LOWER($1)
+			)
+			ORDER BY display_name
 			LIMIT 10
 		`
 
@@ -109,26 +105,18 @@ func SearchMembers(db *sql.DB) http.HandlerFunc {
 		defer rows.Close()
 
 		type MemberInfo struct {
-			UserID        string  `json:"user_id"`
-			Username      string  `json:"username"`
-			Discriminator string  `json:"discriminator"`
-			Avatar        *string `json:"avatar"`
-			Nickname      *string `json:"nickname"`
-			DisplayName   string  `json:"display_name"`
+			UserID      string  `json:"user_id"`
+			Username    string  `json:"username"`
+			DisplayName string  `json:"display_name"`
+			Avatar      *string `json:"avatar"`
 		}
 
 		var members []MemberInfo
 		for rows.Next() {
 			var member MemberInfo
-			err := rows.Scan(&member.UserID, &member.Username, &member.Discriminator, &member.Avatar, &member.Nickname)
+			err := rows.Scan(&member.UserID, &member.Username, &member.DisplayName, &member.Avatar)
 			if err != nil {
 				continue
-			}
-			// Set display name
-			if member.Nickname != nil && *member.Nickname != "" {
-				member.DisplayName = *member.Nickname
-			} else {
-				member.DisplayName = member.Username
 			}
 			members = append(members, member)
 		}

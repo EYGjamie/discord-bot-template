@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -213,6 +214,17 @@ func (c *TaskPermissionChecker) FilterTasksByPermission(tasks []tables.Task, use
 
 // GetUserBoardPermission checks if user has access to a board
 func (b *BoardPermissionChecker) GetUserBoardPermission(boardID int, userID string, userRoles []string) (canView bool, canCreate bool, err error) {
+	// Check if user is admin (admin has all permissions)
+	adminRoleIDs := strings.Split(os.Getenv("ADMIN_ROLE_IDS"), ",")
+	for _, adminRole := range adminRoleIDs {
+		adminRole = strings.TrimSpace(adminRole)
+		for _, userRole := range userRoles {
+			if userRole == adminRole {
+				return true, true, nil // Admin has all permissions
+			}
+		}
+	}
+
 	// Check if any permissions exist for this board
 	var permissionCount int
 	err = b.DB.QueryRow(`
@@ -228,18 +240,24 @@ func (b *BoardPermissionChecker) GetUserBoardPermission(boardID int, userID stri
 		return true, true, nil
 	}
 
-	// Check user-specific permission
-	var userCanView, userCanCreate sql.NullBool
-	err = b.DB.QueryRow(`
-		SELECT can_view, can_create FROM board_permissions
-		WHERE board_id = $1 AND user_id = $2
-	`, boardID, userID).Scan(&userCanView, &userCanCreate)
+	canView = false
+	canCreate = false
 
-	if err == nil {
-		return userCanView.Bool, userCanCreate.Bool, nil
+	// Check user-specific permission
+	var userCanViewBoard, userCanViewTaskList, userCanViewTasks, userCanEditTasks sql.NullBool
+	err = b.DB.QueryRow(`
+		SELECT can_view_board, can_view_task_list, can_view_tasks, can_edit_tasks 
+		FROM board_permissions
+		WHERE board_id = $1 AND user_id = $2
+	`, boardID, userID).Scan(&userCanViewBoard, &userCanViewTaskList, &userCanViewTasks, &userCanEditTasks)
+
+	if err == nil && userCanViewBoard.Bool {
+		// User has explicit permission
+		canView = true
+		canCreate = userCanEditTasks.Bool
 	}
 
-	// Check role-based permissions
+	// Check role-based permissions (even if user permission was found)
 	if len(userRoles) > 0 {
 		placeholders := make([]string, len(userRoles))
 		args := make([]interface{}, len(userRoles)+1)
@@ -251,33 +269,32 @@ func (b *BoardPermissionChecker) GetUserBoardPermission(boardID int, userID stri
 		}
 
 		query := `
-			SELECT can_view, can_create FROM board_permissions
+			SELECT can_view_board, can_edit_tasks 
+			FROM board_permissions
 			WHERE board_id = $1 AND role_id IN (` + strings.Join(placeholders, ",") + `)
 		`
 
 		rows, err := b.DB.Query(query, args...)
-		if err != nil {
-			return false, false, err
-		}
-		defer rows.Close()
+		if err == nil {
+			defer rows.Close()
 
-		canView = false
-		canCreate = false
-		for rows.Next() {
-			var cv, cc bool
-			if err := rows.Scan(&cv, &cc); err == nil {
-				if cv {
-					canView = true
-				}
-				if cc {
-					canCreate = true
+			for rows.Next() {
+				var cv, cc bool
+				if err := rows.Scan(&cv, &cc); err == nil {
+					if cv {
+						canView = true
+					}
+					if cc {
+						canCreate = true
+					}
 				}
 			}
 		}
+	}
 
-		if canView || canCreate {
-			return canView, canCreate, nil
-		}
+	// If user has any permission (via user_id or role_id), return that
+	if canView || canCreate {
+		return canView, canCreate, nil
 	}
 
 	// Default: no access if permissions exist but user doesn't have any

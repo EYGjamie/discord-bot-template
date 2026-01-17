@@ -28,6 +28,7 @@ type BoardPermission struct {
 	CanViewTaskList bool      `json:"can_view_task_list" db:"can_view_task_list"` // Can see task titles in list
 	CanViewTasks    bool      `json:"can_view_tasks" db:"can_view_tasks"`         // Can view full task details
 	CanEditTasks    bool      `json:"can_edit_tasks" db:"can_edit_tasks"`         // Can create/edit/move tasks
+	CanEditBoard    bool      `json:"can_edit_board" db:"can_edit_board"`         // Can edit/delete the board itself
 	CreatedAt       time.Time `json:"created_at" db:"created_at"`
 }
 
@@ -53,8 +54,11 @@ func CreateBoardsTable(db *sql.DB) error {
 		board_id INTEGER NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
 		role_id VARCHAR(20),
 		user_id VARCHAR(20),
-		can_view BOOLEAN DEFAULT false,
-		can_create BOOLEAN DEFAULT false,
+		can_view_board BOOLEAN DEFAULT false,
+		can_view_task_list BOOLEAN DEFAULT false,
+		can_view_tasks BOOLEAN DEFAULT false,
+		can_edit_tasks BOOLEAN DEFAULT false,
+		can_edit_board BOOLEAN DEFAULT false,
 		created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 		CONSTRAINT chk_board_permission_role_or_user CHECK (
 			(role_id IS NOT NULL AND user_id IS NULL) OR

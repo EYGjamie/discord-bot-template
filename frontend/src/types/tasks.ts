@@ -25,10 +25,14 @@ export interface BoardPermission {
   board_id: number;
   role_id?: string;
   user_id?: string;
+  role_name?: string;
+  user_name?: string;
+  user_display_name?: string;
   can_view_board: boolean;
   can_view_task_list: boolean;
   can_view_tasks: boolean;
   can_edit_tasks: boolean;
+  can_edit_board: boolean;
   created_at: string;
 }
 
@@ -147,6 +151,7 @@ export interface SetBoardPermissionRequest {
   can_view_task_list: boolean;
   can_view_tasks: boolean;
   can_edit_tasks: boolean;
+  can_edit_board: boolean;
 }
 
 export interface SetTaskGroupPermissionRequest {

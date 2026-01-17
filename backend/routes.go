@@ -238,11 +238,12 @@ func (s *Server) RegisterRoutes() http.Handler {
 	taskGroupsHandler := &handlers.TaskGroupsHandler{DB: s.db.DB()}
 	taskPermChecker := &middleware.TaskPermissionChecker{DB: s.db.DB()}
 	boardPermChecker := &middleware.BoardPermissionChecker{DB: s.db.DB()}
+	requireAuthWithDB := middleware.RequireAuthWithDB(s.db.DB())
 
 	// Board routes (protected)
-	mux.HandleFunc("GET /api/boards", middleware.RequireAuth(http.HandlerFunc(boardsHandler.GetBoards)))
+	mux.HandleFunc("GET /api/boards", requireAuthWithDB(http.HandlerFunc(boardsHandler.GetBoards)))
 	mux.HandleFunc("GET /api/boards/{id}",
-		middleware.RequireAuth(
+		requireAuthWithDB(
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				boardPermChecker.RequireBoardView()(http.HandlerFunc(boardsHandler.GetBoard)).ServeHTTP(w, r)
 			}),
@@ -292,10 +293,17 @@ func (s *Server) RegisterRoutes() http.Handler {
 			),
 		),
 	)
+	mux.HandleFunc("PUT /api/boards/{id}/permissions/{permissionId}",
+		middleware.RequireAuth(
+			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
+				http.HandlerFunc(boardsHandler.UpdateBoardPermission),
+			),
+		),
+	)
 
 	// Task routes (protected with granular permissions)
 	mux.HandleFunc("GET /api/boards/{boardId}/tasks",
-		middleware.RequireAuth(
+		requireAuthWithDB(
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				boardPermChecker.RequireBoardView()(http.HandlerFunc(tasksHandler.GetBoardTasks)).ServeHTTP(w, r)
 			}),
