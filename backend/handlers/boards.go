@@ -30,10 +30,12 @@ type UpdateBoardRequest struct {
 }
 
 type BoardPermissionRequest struct {
-	RoleID    *string `json:"role_id"`
-	UserID    *string `json:"user_id"`
-	CanView   bool    `json:"can_view"`
-	CanCreate bool    `json:"can_create"`
+	RoleID          *string `json:"role_id"`
+	UserID          *string `json:"user_id"`
+	CanViewBoard    bool    `json:"can_view_board"`
+	CanViewTaskList bool    `json:"can_view_task_list"`
+	CanViewTasks    bool    `json:"can_view_tasks"`
+	CanEditTasks    bool    `json:"can_edit_tasks"`
 }
 
 // GetBoards returns all boards for a guild
@@ -230,7 +232,7 @@ func (h *BoardsHandler) GetBoardPermissions(w http.ResponseWriter, r *http.Reque
 	}
 
 	query := `
-		SELECT id, board_id, role_id, user_id, can_view, can_create, created_at
+		SELECT id, board_id, role_id, user_id, can_view_board, can_view_task_list, can_view_tasks, can_edit_tasks, created_at
 		FROM board_permissions
 		WHERE board_id = $1
 		ORDER BY created_at
@@ -247,7 +249,7 @@ func (h *BoardsHandler) GetBoardPermissions(w http.ResponseWriter, r *http.Reque
 	for rows.Next() {
 		var perm tables.BoardPermission
 		err := rows.Scan(&perm.ID, &perm.BoardID, &perm.RoleID, &perm.UserID,
-			&perm.CanView, &perm.CanCreate, &perm.CreatedAt)
+			&perm.CanViewBoard, &perm.CanViewTaskList, &perm.CanViewTasks, &perm.CanEditTasks, &perm.CreatedAt)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -298,23 +300,23 @@ func (h *BoardsHandler) SetBoardPermission(w http.ResponseWriter, r *http.Reques
 	case sql.ErrNoRows:
 		// Create new permission
 		query := `
-			INSERT INTO board_permissions (board_id, role_id, user_id, can_view, can_create, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6)
-			RETURNING id, board_id, role_id, user_id, can_view, can_create, created_at
+			INSERT INTO board_permissions (board_id, role_id, user_id, can_view_board, can_view_task_list, can_view_tasks, can_edit_tasks, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			RETURNING id, board_id, role_id, user_id, can_view_board, can_view_task_list, can_view_tasks, can_edit_tasks, created_at
 		`
-		err = h.DB.QueryRow(query, boardID, req.RoleID, req.UserID, req.CanView, req.CanCreate, time.Now()).Scan(
-			&perm.ID, &perm.BoardID, &perm.RoleID, &perm.UserID, &perm.CanView, &perm.CanCreate, &perm.CreatedAt,
+		err = h.DB.QueryRow(query, boardID, req.RoleID, req.UserID, req.CanViewBoard, req.CanViewTaskList, req.CanViewTasks, req.CanEditTasks, time.Now()).Scan(
+			&perm.ID, &perm.BoardID, &perm.RoleID, &perm.UserID, &perm.CanViewBoard, &perm.CanViewTaskList, &perm.CanViewTasks, &perm.CanEditTasks, &perm.CreatedAt,
 		)
 	case nil:
 		// Update existing permission
 		query := `
 			UPDATE board_permissions
-			SET can_view = $1, can_create = $2
-			WHERE id = $3
-			RETURNING id, board_id, role_id, user_id, can_view, can_create, created_at
+			SET can_view_board = $1, can_view_task_list = $2, can_view_tasks = $3, can_edit_tasks = $4
+			WHERE id = $5
+			RETURNING id, board_id, role_id, user_id, can_view_board, can_view_task_list, can_view_tasks, can_edit_tasks, created_at
 		`
-		err = h.DB.QueryRow(query, req.CanView, req.CanCreate, existingID).Scan(
-			&perm.ID, &perm.BoardID, &perm.RoleID, &perm.UserID, &perm.CanView, &perm.CanCreate, &perm.CreatedAt,
+		err = h.DB.QueryRow(query, req.CanViewBoard, req.CanViewTaskList, req.CanViewTasks, req.CanEditTasks, existingID).Scan(
+			&perm.ID, &perm.BoardID, &perm.RoleID, &perm.UserID, &perm.CanViewBoard, &perm.CanViewTaskList, &perm.CanViewTasks, &perm.CanEditTasks, &perm.CreatedAt,
 		)
 	}
 

@@ -1,0 +1,15 @@
+FROM golang:1.25.5-alpine AS build
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN go build -o botapp cmd/bot/main.go
+
+FROM alpine:3.21
+WORKDIR /app
+COPY --from=build /app/botapp /app/botapp
+CMD ["./botapp"]

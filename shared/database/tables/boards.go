@@ -20,13 +20,15 @@ type Board struct {
 
 // BoardPermission defines who can see and create tasks on a board
 type BoardPermission struct {
-	ID        int       `json:"id" db:"id"`
-	BoardID   int       `json:"board_id" db:"board_id"`
-	RoleID    *string   `json:"role_id,omitempty" db:"role_id"` // Discord role ID (null for user-specific)
-	UserID    *string   `json:"user_id,omitempty" db:"user_id"` // Discord user ID (null for role-based)
-	CanView   bool      `json:"can_view" db:"can_view"`
-	CanCreate bool      `json:"can_create" db:"can_create"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	ID              int       `json:"id" db:"id"`
+	BoardID         int       `json:"board_id" db:"board_id"`
+	RoleID          *string   `json:"role_id,omitempty" db:"role_id"`             // Discord role ID (null for user-specific)
+	UserID          *string   `json:"user_id,omitempty" db:"user_id"`             // Discord user ID (null for role-based)
+	CanViewBoard    bool      `json:"can_view_board" db:"can_view_board"`         // Can see the board exists
+	CanViewTaskList bool      `json:"can_view_task_list" db:"can_view_task_list"` // Can see task titles in list
+	CanViewTasks    bool      `json:"can_view_tasks" db:"can_view_tasks"`         // Can view full task details
+	CanEditTasks    bool      `json:"can_edit_tasks" db:"can_edit_tasks"`         // Can create/edit/move tasks
+	CreatedAt       time.Time `json:"created_at" db:"created_at"`
 }
 
 // CreateBoardsTable creates the boards and board_permissions tables

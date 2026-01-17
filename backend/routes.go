@@ -187,6 +187,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux.HandleFunc("GET /api/bot-settings", handlers.GetBotSettings(s.db.DB()))
 	mux.HandleFunc("GET /api/discord/roles", handlers.GetDiscordRoles(s.db.DB()))
 	mux.HandleFunc("GET /api/discord/channels", handlers.GetDiscordChannels(s.db.DB()))
+	mux.HandleFunc("GET /api/discord/roles-and-members", middleware.RequireAuth(handlers.GetDiscordRolesAndMembers(s.db.DB())))
+	mux.HandleFunc("GET /api/discord/members/search", middleware.RequireAuth(handlers.SearchMembers(s.db.DB())))
 	mux.HandleFunc("PUT /api/bot-settings/moderator-roles",
 		middleware.RequireAuth(
 			permissionChecker.RequirePermission(middleware.PermissionAdmin)(

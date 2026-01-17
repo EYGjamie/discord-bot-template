@@ -1,0 +1,13 @@
+FROM node:23-slim AS builder
+WORKDIR /frontend
+
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend/. .
+RUN npm run build
+
+FROM node:23-slim
+RUN npm install -g serve
+COPY --from=builder /frontend/dist /app/dist
+EXPOSE 5173
+CMD ["serve", "-s", "/app/dist", "-l", "5173"]

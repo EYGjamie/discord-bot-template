@@ -11,7 +11,7 @@ require (
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.39.0
 )
 
-require github.com/gorilla/mux v1.8.1 // indirect
+require github.com/gorilla/mux v1.8.1 // direct
 
 require (
 	dario.cat/mergo v1.0.2 // indirect
