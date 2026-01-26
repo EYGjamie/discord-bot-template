@@ -24,18 +24,48 @@ type BoardPermissionChecker struct {
 
 // GetUserTaskPermission returns the highest permission level a user has for a task
 func (c *TaskPermissionChecker) GetUserTaskPermission(taskID int, userID string, userRoles []string) (tables.PermissionLevel, error) {
-	// Get the task's group
+	// Get the task's board_id and group_id
+	var boardID int
 	var groupID *int
-	err := c.DB.QueryRow(`SELECT group_id FROM tasks WHERE id = $1`, taskID).Scan(&groupID)
+	err := c.DB.QueryRow(`SELECT board_id, group_id FROM tasks WHERE id = $1`, taskID).Scan(&boardID, &groupID)
 	if err != nil {
 		return tables.PermissionNone, err
 	}
 
-	// If no group, allow read_content by default (you can change this logic)
+	// Check if user is admin (full access to all tasks)
+	adminRoleIDs := strings.Split(os.Getenv("ADMIN_ROLE_IDS"), ",")
+	for _, adminRole := range adminRoleIDs {
+		adminRole = strings.TrimSpace(adminRole)
+		if adminRole == "" {
+			continue
+		}
+		for _, userRole := range userRoles {
+			if userRole == adminRole {
+				return tables.PermissionDelete, nil // Highest permission level
+			}
+		}
+	}
+
+	// Check if user is the board creator (full access to all tasks on their board)
+	var createdBy string
+	err = c.DB.QueryRow(`SELECT created_by FROM boards WHERE id = $1`, boardID).Scan(&createdBy)
+	if err == nil && createdBy == userID {
+		return tables.PermissionDelete, nil // Board creator has full access to all tasks
+	}
+
+	// Check if user has board-level edit permissions (can edit all tasks on board)
+	boardChecker := &BoardPermissionChecker{DB: c.DB}
+	_, canEditBoard, err := boardChecker.GetUserBoardPermission(boardID, userID, userRoles)
+	if err == nil && canEditBoard {
+		return tables.PermissionDelete, nil // Can edit/delete tasks if can edit board
+	}
+
+	// If no group, allow read_content by default
 	if groupID == nil {
 		return tables.PermissionReadContent, nil
 	}
 
+	// Check group-specific permissions
 	return c.GetUserGroupPermission(*groupID, userID, userRoles)
 }
 
@@ -214,10 +244,23 @@ func (c *TaskPermissionChecker) FilterTasksByPermission(tasks []tables.Task, use
 
 // GetUserBoardPermission checks if user has access to a board
 func (b *BoardPermissionChecker) GetUserBoardPermission(boardID int, userID string, userRoles []string) (canView bool, canCreate bool, err error) {
-	// Check if user is admin (admin has all permissions)
+	// Check if user is the creator of the board (automatic full access)
+	var createdBy string
+	err = b.DB.QueryRow(`SELECT created_by FROM boards WHERE id = $1`, boardID).Scan(&createdBy)
+	if err != nil && err != sql.ErrNoRows {
+		return false, false, err
+	}
+	if createdBy == userID {
+		return true, true, nil // Creator has all permissions (implicit, backend only)
+	}
+
+	// Check if user is admin (admin has all permissions - backend only)
 	adminRoleIDs := strings.Split(os.Getenv("ADMIN_ROLE_IDS"), ",")
 	for _, adminRole := range adminRoleIDs {
 		adminRole = strings.TrimSpace(adminRole)
+		if adminRole == "" {
+			continue
+		}
 		for _, userRole := range userRoles {
 			if userRole == adminRole {
 				return true, true, nil // Admin has all permissions

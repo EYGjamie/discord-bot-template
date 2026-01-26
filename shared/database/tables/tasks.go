@@ -113,10 +113,10 @@ func CreateTasksTable(db *sql.DB) error {
 		id SERIAL PRIMARY KEY,
 		guild_id VARCHAR(20) NOT NULL,
 		name VARCHAR(100) NOT NULL,
-		description TEXT,
-		color VARCHAR(7) DEFAULT '#6aa6ff',
-		created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-		updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+		description TEXT DEFAULT '',
+		color VARCHAR(7) DEFAULT '#39d98a',
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);
 
 	CREATE INDEX IF NOT EXISTS idx_task_groups_guild_id ON task_groups(guild_id);
@@ -125,31 +125,31 @@ func CreateTasksTable(db *sql.DB) error {
 		id SERIAL PRIMARY KEY,
 		board_id INTEGER NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
 		group_id INTEGER REFERENCES task_groups(id) ON DELETE SET NULL,
-		title VARCHAR(255) NOT NULL,
-		description TEXT,
-		status VARCHAR(20) NOT NULL DEFAULT 'todo',
+		title VARCHAR(200) NOT NULL,
+		description TEXT DEFAULT '',
+		status VARCHAR(20) DEFAULT 'todo',
 		position INTEGER DEFAULT 0,
 		assignee_id VARCHAR(20),
 		due_date TIMESTAMP,
-		tags JSONB DEFAULT '[]'::jsonb,
+		tags TEXT DEFAULT '[]',
 		created_by VARCHAR(20) NOT NULL,
-		created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-		updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);
 
 	CREATE INDEX IF NOT EXISTS idx_tasks_board_id ON tasks(board_id);
 	CREATE INDEX IF NOT EXISTS idx_tasks_group_id ON tasks(group_id);
-	CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
 	CREATE INDEX IF NOT EXISTS idx_tasks_assignee_id ON tasks(assignee_id);
+	CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
 
 	CREATE TABLE IF NOT EXISTS task_group_permissions (
 		id SERIAL PRIMARY KEY,
 		group_id INTEGER NOT NULL REFERENCES task_groups(id) ON DELETE CASCADE,
 		role_id VARCHAR(20),
 		user_id VARCHAR(20),
-		permission VARCHAR(20) NOT NULL DEFAULT 'none',
-		created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-		CONSTRAINT chk_task_group_permission_role_or_user CHECK (
+		permission VARCHAR(20) DEFAULT 'none',
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		CONSTRAINT task_group_permissions_role_or_user CHECK (
 			(role_id IS NOT NULL AND user_id IS NULL) OR
 			(role_id IS NULL AND user_id IS NOT NULL)
 		)

@@ -35,11 +35,6 @@ func NewServer() *http.Server {
 		log.Printf("Warning: Failed to initialize database tables: %v", err)
 	}
 
-	// Run database migrations
-	if err := database.RunMigrations(db); err != nil {
-		log.Printf("Warning: Failed to run database migrations: %v", err)
-	}
-
 	// Initialisiere und starte den Discord Stats Scheduler
 	NewServer.scheduler = services.NewDiscordStatsScheduler(NewServer.db.DB())
 	NewServer.scheduler.Start()

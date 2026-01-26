@@ -184,6 +184,17 @@ func (h *BoardsHandler) CreateBoard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Automatically grant full permissions to the creator (visible on Settings page)
+	permissionQuery := `
+		INSERT INTO board_permissions (board_id, user_id, can_view_board, can_view_task_list, can_view_tasks, can_edit_tasks, can_edit_board, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	`
+	_, err = h.DB.Exec(permissionQuery, board.ID, userID, true, true, true, true, true, now)
+	if err != nil {
+		// Log error but don't fail the request
+		// The creator will still have permissions via the creator check
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(board)

@@ -67,14 +67,6 @@ func New() (*Bot, error) {
 		logger.LogInfo("Database Initialized", "All database tables created successfully", false)
 	}
 
-	// Run database migrations for updates
-	if err := database.RunMigrations(db); err != nil {
-		logger.LogError("Database Migrations Failed", fmt.Sprintf("Failed to run migrations: %v", err), "")
-		log.Printf("Warning: Failed to run database migrations: %v", err)
-	} else {
-		logger.LogInfo("Database Migrations Complete", "All migrations executed successfully", false)
-	}
-
 	// Initialize default data (e.g., event categories)
 	guildID := os.Getenv("GUILD_ID")
 	if guildID != "" {

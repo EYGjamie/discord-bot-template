@@ -181,13 +181,6 @@ func InitializeTables(db *sql.DB) error {
 	}
 	log.Println("Tasks tables initialized successfully")
 
-	// Erstelle Schema-Migrations-Tabelle (für automatische Migrationen)
-	if err := CreateMigrationsTable(db); err != nil {
-		log.Printf("Error creating schema_migrations table: %v", err)
-		return err
-	}
-	log.Println("Schema-Migrations table initialized successfully")
-
 	log.Println("All database tables initialized successfully")
 	return nil
 }
