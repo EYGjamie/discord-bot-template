@@ -67,14 +67,19 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging = false, onClick }
   const isDueSoon = task.due_date && !isDueOverdue && 
     (new Date(task.due_date).getTime() - new Date().getTime()) < (24 * 60 * 60 * 1000); // Less than 24 hours
 
+  // Only allow clicking if user has read_content permission
+  const handleClick = canReadContent ? onClick : undefined;
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       {...attributes}
       {...listeners}
-      onClick={onClick}
-      className={`bg-[#282c34] rounded-lg shadow-sm border border-white/10 p-3 hover:bg-[#2d3139] hover:shadow-lg transition-all cursor-pointer ${
+      onClick={handleClick}
+      className={`bg-[#282c34] rounded-lg shadow-sm border border-white/10 p-3 hover:bg-[#2d3139] hover:shadow-lg transition-all ${
+        canReadContent ? 'cursor-pointer' : 'cursor-default'
+      } ${
         isDragging || isSortableDragging ? 'opacity-50 rotate-2' : ''
       }`}
     >

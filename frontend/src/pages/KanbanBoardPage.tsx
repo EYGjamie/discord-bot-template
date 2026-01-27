@@ -8,14 +8,17 @@ import KanbanColumnComponent from '../components/tasks/KanbanColumn';
 import TaskCard from '../components/tasks/TaskCard';
 import TaskModal from '../components/tasks/TaskModal';
 import { ArrowLeft, Plus, Settings } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 const KanbanBoardPage: React.FC = () => {
   const { boardId } = useParams<{ boardId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [board, setBoard] = useState<Board | null>(null);
   const [tasks, setTasks] = useState<FilteredTask[]>([]);
   const [columns, setColumns] = useState<KanbanColumn[]>([]);
   const [loading, setLoading] = useState(true);
+  const [canEditBoard, setCanEditBoard] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTask, setActiveTask] = useState<FilteredTask | null>(null);
   const [selectedTask, setSelectedTask] = useState<FilteredTask | null>(null);
@@ -45,6 +48,12 @@ const KanbanBoardPage: React.FC = () => {
   }, [boardId]);
 
   useEffect(() => {
+    if (boardId && user?.discord_id) {
+      checkBoardEditPermission();
+    }
+  }, [boardId, user]);
+
+  useEffect(() => {
     organizeTasksIntoColumns();
   }, [tasks]);
 
@@ -54,6 +63,42 @@ const KanbanBoardPage: React.FC = () => {
       setBoard(data);
     } catch (err: any) {
       setError(err?.message || 'Failed to load board');
+    }
+  };
+
+  const checkBoardEditPermission = async () => {
+    if (!user?.discord_id) return;
+    
+    try {
+      const permissions = await boardsService.getPermissions(Number(boardId));
+      
+      // Check if user has explicit can_edit_board permission
+      const userPermission = permissions.find(
+        (p) => p.user_id === user.discord_id && p.can_edit_board
+      );
+      
+      if (userPermission) {
+        setCanEditBoard(true);
+        return;
+      }
+      
+      // Check if any of user's roles have can_edit_board permission
+      if (user.roles && user.roles.length > 0) {
+        const roleIds = user.roles.map(r => r.id);
+        const rolePermission = permissions.find(
+          (p) => p.role_id && roleIds.includes(p.role_id) && p.can_edit_board
+        );
+        
+        if (rolePermission) {
+          setCanEditBoard(true);
+          return;
+        }
+      }
+      
+      setCanEditBoard(false);
+    } catch (err) {
+      console.error('Failed to check board edit permission:', err);
+      setCanEditBoard(false);
     }
   };
 
@@ -138,25 +183,6 @@ const KanbanBoardPage: React.FC = () => {
   };
 
   const handleTaskClick = (task: FilteredTask) => {
-    // Check if user has permission to view full task details (read_content)
-    const permissionOrder: Record<string, number> = {
-      'none': 0,
-      'existence': 1,
-      'read_title': 2,
-      'read_content': 3,
-      'edit': 4,
-      'delete': 5,
-    };
-
-    const userPermission = permissionOrder[task.permission || 'none'];
-    const requiredPermission = permissionOrder['read_content'];
-
-    if (userPermission < requiredPermission) {
-      // User doesn't have permission to view full task details
-      alert('Sie haben nicht die Berechtigung, diese Aufgabe vollständig zu öffnen.');
-      return;
-    }
-
     setSelectedTask(task);
     setShowTaskModal(true);
   };
@@ -215,12 +241,14 @@ const KanbanBoardPage: React.FC = () => {
               <Plus size={20} />
               New Task
             </button>
-            <button
-              onClick={() => navigate(`/tasks/boards/${boardId}/settings`)}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-            >
-              <Settings size={20} className="text-white" />
-            </button>
+            {(user?.is_admin || board?.created_by === user?.discord_id || canEditBoard) && (
+              <button
+                onClick={() => navigate(`/tasks/boards/${boardId}/settings`)}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <Settings size={20} className="text-white" />
+              </button>
+            )}
           </div>
         </div>
 

@@ -23,18 +23,18 @@ type NotificationSettings struct {
 
 // BoardNotificationSettings represents user notification preferences per board
 type BoardNotificationSettings struct {
-	ID                   int       `json:"id" db:"id"`
-	UserID               string    `json:"user_id" db:"user_id"`                             // Discord user ID
-	BoardID              int       `json:"board_id" db:"board_id"`                           // Board ID
-	NotificationsEnabled bool      `json:"notifications_enabled" db:"notifications_enabled"` // Board-specific notifications on/off
-	NotifyOnAssignment   bool      `json:"notify_on_assignment" db:"notify_on_assignment"`   // Override global setting for this board
-	NotifyOnTaskUpdate   bool      `json:"notify_on_task_update" db:"notify_on_task_update"` // Override global setting for this board
-	NotifyOnComment      bool      `json:"notify_on_comment" db:"notify_on_comment"`         // Override global setting for this board
-	NotifyOnDueDateChange bool     `json:"notify_on_due_date_change" db:"notify_on_due_date_change"` // Override global setting for this board
-	NotifyOnUnassignment bool      `json:"notify_on_unassignment" db:"notify_on_unassignment"` // Override global setting for this board
-	NotifyOnChecklistItem bool     `json:"notify_on_checklist_item" db:"notify_on_checklist_item"` // Override global setting for this board
-	CreatedAt            time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt            time.Time `json:"updated_at" db:"updated_at"`
+	ID                    int       `json:"id" db:"id"`
+	UserID                string    `json:"user_id" db:"user_id"`                                     // Discord user ID
+	BoardID               int       `json:"board_id" db:"board_id"`                                   // Board ID
+	NotificationsEnabled  bool      `json:"notifications_enabled" db:"notifications_enabled"`         // Board-specific notifications on/off
+	NotifyOnAssignment    bool      `json:"notify_on_assignment" db:"notify_on_assignment"`           // Override global setting for this board
+	NotifyOnTaskUpdate    bool      `json:"notify_on_task_update" db:"notify_on_task_update"`         // Override global setting for this board
+	NotifyOnComment       bool      `json:"notify_on_comment" db:"notify_on_comment"`                 // Override global setting for this board
+	NotifyOnDueDateChange bool      `json:"notify_on_due_date_change" db:"notify_on_due_date_change"` // Override global setting for this board
+	NotifyOnUnassignment  bool      `json:"notify_on_unassignment" db:"notify_on_unassignment"`       // Override global setting for this board
+	NotifyOnChecklistItem bool      `json:"notify_on_checklist_item" db:"notify_on_checklist_item"`   // Override global setting for this board
+	CreatedAt             time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt             time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // CreateNotificationSettingsTable creates the notification settings tables

@@ -272,12 +272,12 @@ func (s *Server) RegisterRoutes() http.Handler {
 		),
 	)
 
-	// Board permission routes (admin only)
+	// Board permission routes (users can view permissions for boards they have access to)
 	mux.HandleFunc("GET /api/boards/{id}/permissions",
-		middleware.RequireAuth(
-			permissionChecker.RequirePermission(middleware.PermissionAdmin)(
-				http.HandlerFunc(boardsHandler.GetBoardPermissions),
-			),
+		requireAuthWithDB(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				boardPermChecker.RequireBoardView()(http.HandlerFunc(boardsHandler.GetBoardPermissions)).ServeHTTP(w, r)
+			}),
 		),
 	)
 	mux.HandleFunc("POST /api/boards/{id}/permissions",

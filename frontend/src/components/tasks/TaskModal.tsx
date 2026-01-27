@@ -455,47 +455,58 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, boardId, onClose, onUpdate 
                       <div className="space-y-2 mb-3 max-h-64 overflow-y-auto pr-2">
                         {(checklist || []).map((item) => (
                           <div key={item.id} className="flex items-center gap-2 bg-[#0d0f15] border border-white/10 rounded-lg p-3 hover:bg-white/5">
-                            <button
-                              type="button"
-                              onClick={() => handleToggleChecklistItem(item.id)}
-                              className="flex-shrink-0"
-                            >
+                            {canEdit ? (
+                              <button
+                                type="button"
+                                onClick={() => handleToggleChecklistItem(item.id)}
+                                className="flex-shrink-0"
+                              >
+                                <CheckSquare 
+                                  size={18} 
+                                  className={item.is_completed ? 'text-green-500' : 'text-gray-500'}
+                                />
+                              </button>
+                            ) : (
                               <CheckSquare 
                                 size={18} 
                                 className={item.is_completed ? 'text-green-500' : 'text-gray-500'}
                               />
-                            </button>
+                            )}
                             <span className={`text-sm flex-1 ${item.is_completed ? 'line-through text-gray-500' : 'text-gray-300'}`}>
                               {item.text}
                             </span>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteChecklistItem(item.id)}
-                              className="text-gray-500 hover:text-red-500 text-sm"
-                            >
-                              ×
-                            </button>
+                            {canEdit && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteChecklistItem(item.id)}
+                                className="text-gray-500 hover:text-red-500 text-sm"
+                              >
+                                ×
+                              </button>
+                            )}
                           </div>
                         ))}
                       </div>
 
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={newChecklistItem}
-                          onChange={(e) => setNewChecklistItem(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddChecklistItem())}
-                          placeholder="Element hinzufügen"
-                          className="flex-1 px-3 py-2 bg-[#0d0f15] border border-white/10 rounded-lg text-gray-300 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleAddChecklistItem}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
-                        >
-                          Hinzufügen
-                        </button>
-                      </div>
+                      {canEdit && (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={newChecklistItem}
+                            onChange={(e) => setNewChecklistItem(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddChecklistItem())}
+                            placeholder="Element hinzufügen"
+                            className="flex-1 px-3 py-2 bg-[#0d0f15] border border-white/10 rounded-lg text-gray-300 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddChecklistItem}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+                          >
+                            Hinzufügen
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
 
