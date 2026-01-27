@@ -51,6 +51,7 @@ type CreateTaskRequest struct {
 	Description string            `json:"description"`
 	Status      tables.TaskStatus `json:"status"`
 	AssigneeID  *string           `json:"assignee_id"`
+	StartDate   *FlexibleDate     `json:"start_date"`
 	DueDate     *FlexibleDate     `json:"due_date"`
 	Tags        []string          `json:"tags"`
 }
@@ -61,6 +62,7 @@ type UpdateTaskRequest struct {
 	Status      tables.TaskStatus `json:"status"`
 	Position    *int              `json:"position"`
 	AssigneeID  *string           `json:"assignee_id"`
+	StartDate   *FlexibleDate     `json:"start_date"`
 	DueDate     *FlexibleDate     `json:"due_date"`
 	Tags        []string          `json:"tags"`
 }
@@ -80,7 +82,7 @@ func (h *TasksHandler) GetBoardTasks(w http.ResponseWriter, r *http.Request) {
 
 	query := `
 		SELECT id, board_id, group_id, title, description, status, position, 
-		       assignee_id, due_date, tags, created_by, created_at, updated_at
+		       assignee_id, start_date, due_date, tags, created_by, created_at, updated_at
 		FROM tasks
 		WHERE board_id = $1
 		ORDER BY status, position, created_at
@@ -97,7 +99,7 @@ func (h *TasksHandler) GetBoardTasks(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var task tables.Task
 		err := rows.Scan(&task.ID, &task.BoardID, &task.GroupID, &task.Title, &task.Description,
-			&task.Status, &task.Position, &task.AssigneeID, &task.DueDate, &task.Tags,
+			&task.Status, &task.Position, &task.AssigneeID, &task.StartDate, &task.DueDate, &task.Tags,
 			&task.CreatedBy, &task.CreatedAt, &task.UpdatedAt)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -114,6 +116,7 @@ func (h *TasksHandler) GetBoardTasks(w http.ResponseWriter, r *http.Request) {
 			"status":      task.Status,
 			"position":    task.Position,
 			"assignee_id": task.AssigneeID,
+			"start_date":  task.StartDate,
 			"due_date":    task.DueDate,
 			"tags":        task.Tags,
 			"created_by":  task.CreatedBy,
@@ -143,7 +146,7 @@ func (h *TasksHandler) GetTask(w http.ResponseWriter, r *http.Request) {
 
 	query := `
 		SELECT id, board_id, group_id, title, description, status, position,
-		       assignee_id, due_date, tags, created_by, created_at, updated_at
+		       assignee_id, start_date, due_date, tags, created_by, created_at, updated_at
 		FROM tasks
 		WHERE id = $1
 	`
@@ -151,7 +154,7 @@ func (h *TasksHandler) GetTask(w http.ResponseWriter, r *http.Request) {
 	var task tables.Task
 	err = h.DB.QueryRow(query, taskID).Scan(
 		&task.ID, &task.BoardID, &task.GroupID, &task.Title, &task.Description,
-		&task.Status, &task.Position, &task.AssigneeID, &task.DueDate, &task.Tags,
+		&task.Status, &task.Position, &task.AssigneeID, &task.StartDate, &task.DueDate, &task.Tags,
 		&task.CreatedBy, &task.CreatedAt, &task.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
@@ -198,15 +201,20 @@ func (h *TasksHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 
 	query := `
 		INSERT INTO tasks (board_id, group_id, title, description, status, assignee_id, 
-		                   due_date, tags, created_by, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		                   start_date, due_date, tags, created_by, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		RETURNING id, board_id, group_id, title, description, status, position,
-		          assignee_id, due_date, tags, created_by, created_at, updated_at
+		          assignee_id, start_date, due_date, tags, created_by, created_at, updated_at
 	`
 
 	now := time.Now()
 
 	// Convert FlexibleDate to *time.Time
+	var startDate *time.Time
+	if req.StartDate != nil && !req.StartDate.Time.IsZero() {
+		startDate = &req.StartDate.Time
+	}
+
 	var dueDate *time.Time
 	if req.DueDate != nil && !req.DueDate.Time.IsZero() {
 		dueDate = &req.DueDate.Time
@@ -214,9 +222,9 @@ func (h *TasksHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 
 	var task tables.Task
 	err := h.DB.QueryRow(query, req.BoardID, req.GroupID, req.Title, req.Description,
-		req.Status, req.AssigneeID, dueDate, tags, userID, now, now).Scan(
+		req.Status, req.AssigneeID, startDate, dueDate, tags, userID, now, now).Scan(
 		&task.ID, &task.BoardID, &task.GroupID, &task.Title, &task.Description,
-		&task.Status, &task.Position, &task.AssigneeID, &task.DueDate, &task.Tags,
+		&task.Status, &task.Position, &task.AssigneeID, &task.StartDate, &task.DueDate, &task.Tags,
 		&task.CreatedBy, &task.CreatedAt, &task.UpdatedAt,
 	)
 	if err != nil {
@@ -252,13 +260,18 @@ func (h *TasksHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	query := `
 		UPDATE tasks
 		SET title = $1, description = $2, status = $3, assignee_id = $4,
-		    due_date = $5, tags = $6, updated_at = $7
-		WHERE id = $8
+		    start_date = $5, due_date = $6, tags = $7, updated_at = $8
+		WHERE id = $9
 		RETURNING id, board_id, group_id, title, description, status, position,
-		          assignee_id, due_date, tags, created_by, created_at, updated_at
+		          assignee_id, start_date, due_date, tags, created_by, created_at, updated_at
 	`
 
 	// Convert FlexibleDate to *time.Time
+	var startDate *time.Time
+	if req.StartDate != nil && !req.StartDate.Time.IsZero() {
+		startDate = &req.StartDate.Time
+	}
+
 	var dueDate *time.Time
 	if req.DueDate != nil && !req.DueDate.Time.IsZero() {
 		dueDate = &req.DueDate.Time
@@ -266,9 +279,9 @@ func (h *TasksHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 
 	var task tables.Task
 	err = h.DB.QueryRow(query, req.Title, req.Description, req.Status, req.AssigneeID,
-		dueDate, tags, time.Now(), taskID).Scan(
+		startDate, dueDate, tags, time.Now(), taskID).Scan(
 		&task.ID, &task.BoardID, &task.GroupID, &task.Title, &task.Description,
-		&task.Status, &task.Position, &task.AssigneeID, &task.DueDate, &task.Tags,
+		&task.Status, &task.Position, &task.AssigneeID, &task.StartDate, &task.DueDate, &task.Tags,
 		&task.CreatedBy, &task.CreatedAt, &task.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {

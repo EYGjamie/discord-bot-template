@@ -45,6 +45,7 @@ export interface Task {
   status: TaskStatus;
   position: number;
   assignee_id?: string;
+  start_date?: string;
   due_date?: string;
   tags: string[]; // Array of tags
   created_by: string;
@@ -66,6 +67,7 @@ export interface FilteredTask {
   status: TaskStatus;
   position: number;
   assignee_id?: string;
+  start_date?: string;
   due_date?: string;
   tags?: string[]; // Only if permission >= read_content
   created_by?: string; // Only if permission >= read_content
@@ -113,6 +115,7 @@ export interface CreateTaskRequest {
   description: string;
   status?: TaskStatus;
   assignee_id?: string;
+  start_date?: string;
   due_date?: string;
   tags?: string[];
 }
@@ -123,6 +126,7 @@ export interface UpdateTaskRequest {
   status: TaskStatus;
   position?: number;
   assignee_id?: string;
+  start_date?: string;
   due_date?: string;
   tags?: string[];
 }
@@ -166,3 +170,40 @@ export interface KanbanColumn {
   title: string;
   tasks: FilteredTask[];
 }
+
+// Comment and Checklist types
+export interface TaskComment {
+  id: number;
+  task_id: number;
+  user_id: string;
+  user_name: string;
+  user_avatar: string;
+  text: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TaskChecklistItem {
+  id: number;
+  task_id: number;
+  text: string;
+  is_completed: boolean;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateCommentRequest {
+  text: string;
+}
+
+export interface CreateChecklistItemRequest {
+  text: string;
+}
+
+export interface UpdateChecklistItemRequest {
+  text?: string;
+  is_completed?: boolean;
+  position?: number;
+}
+

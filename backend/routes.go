@@ -339,6 +339,55 @@ func (s *Server) RegisterRoutes() http.Handler {
 		),
 	)
 
+	// Task Comments routes (protected with task view permission)
+	taskCommentsHandler := &handlers.TaskCommentsHandler{DB: s.db.DB()}
+	mux.HandleFunc("GET /api/tasks/{taskId}/comments",
+		middleware.RequireAuth(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				taskPermChecker.RequireTaskPermission(tables.PermissionReadTitle)(http.HandlerFunc(taskCommentsHandler.GetComments)).ServeHTTP(w, r)
+			}),
+		),
+	)
+	mux.HandleFunc("POST /api/tasks/{taskId}/comments",
+		middleware.RequireAuth(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				taskPermChecker.RequireTaskPermission(tables.PermissionEdit)(http.HandlerFunc(taskCommentsHandler.CreateComment)).ServeHTTP(w, r)
+			}),
+		),
+	)
+	mux.HandleFunc("PUT /api/comments/{id}",
+		middleware.RequireAuth(http.HandlerFunc(taskCommentsHandler.UpdateComment)),
+	)
+	mux.HandleFunc("DELETE /api/comments/{id}",
+		middleware.RequireAuth(http.HandlerFunc(taskCommentsHandler.DeleteComment)),
+	)
+
+	// Task Checklist routes (protected with task view permission)
+	taskChecklistHandler := &handlers.TaskChecklistHandler{DB: s.db.DB()}
+	mux.HandleFunc("GET /api/tasks/{taskId}/checklist",
+		middleware.RequireAuth(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				taskPermChecker.RequireTaskPermission(tables.PermissionReadTitle)(http.HandlerFunc(taskChecklistHandler.GetChecklistItems)).ServeHTTP(w, r)
+			}),
+		),
+	)
+	mux.HandleFunc("POST /api/tasks/{taskId}/checklist",
+		middleware.RequireAuth(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				taskPermChecker.RequireTaskPermission(tables.PermissionEdit)(http.HandlerFunc(taskChecklistHandler.CreateChecklistItem)).ServeHTTP(w, r)
+			}),
+		),
+	)
+	mux.HandleFunc("PUT /api/checklist/{id}",
+		middleware.RequireAuth(http.HandlerFunc(taskChecklistHandler.UpdateChecklistItem)),
+	)
+	mux.HandleFunc("POST /api/checklist/{id}/toggle",
+		middleware.RequireAuth(http.HandlerFunc(taskChecklistHandler.ToggleChecklistItem)),
+	)
+	mux.HandleFunc("DELETE /api/checklist/{id}",
+		middleware.RequireAuth(http.HandlerFunc(taskChecklistHandler.DeleteChecklistItem)),
+	)
+
 	// Task group routes (admin only)
 	mux.HandleFunc("GET /api/task-groups", middleware.RequireAuth(http.HandlerFunc(taskGroupsHandler.GetTaskGroups)))
 	mux.HandleFunc("GET /api/task-groups/{id}", middleware.RequireAuth(http.HandlerFunc(taskGroupsHandler.GetTaskGroup)))

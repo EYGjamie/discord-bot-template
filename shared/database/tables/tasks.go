@@ -66,6 +66,7 @@ type Task struct {
 	Status      TaskStatus `json:"status" db:"status"`
 	Position    int        `json:"position" db:"position"`
 	AssigneeID  *string    `json:"assignee_id,omitempty" db:"assignee_id"` // Discord user ID
+	StartDate   *time.Time `json:"start_date,omitempty" db:"start_date"`
 	DueDate     *time.Time `json:"due_date,omitempty" db:"due_date"`
 	Tags        TagArray   `json:"tags" db:"tags"` // JSON array of strings
 	CreatedBy   string     `json:"created_by" db:"created_by"`
@@ -106,6 +107,29 @@ type TaskGroupPermission struct {
 	CreatedAt  time.Time       `json:"created_at" db:"created_at"`
 }
 
+// TaskComment represents a comment on a task
+type TaskComment struct {
+	ID         int       `json:"id" db:"id"`
+	TaskID     int       `json:"task_id" db:"task_id"`
+	UserID     string    `json:"user_id" db:"user_id"`
+	UserName   string    `json:"user_name" db:"user_name"`
+	UserAvatar string    `json:"user_avatar" db:"user_avatar"`
+	Text       string    `json:"text" db:"text"`
+	CreatedAt  time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// TaskChecklistItem represents an item in a task's checklist
+type TaskChecklistItem struct {
+	ID          int       `json:"id" db:"id"`
+	TaskID      int       `json:"task_id" db:"task_id"`
+	Text        string    `json:"text" db:"text"`
+	IsCompleted bool      `json:"is_completed" db:"is_completed"`
+	Position    int       `json:"position" db:"position"`
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
+}
+
 // CreateTasksTable creates the task_groups, tasks, and task_group_permissions tables
 func CreateTasksTable(db *sql.DB) error {
 	query := `
@@ -130,6 +154,7 @@ func CreateTasksTable(db *sql.DB) error {
 		status VARCHAR(20) DEFAULT 'todo',
 		position INTEGER DEFAULT 0,
 		assignee_id VARCHAR(20),
+		start_date TIMESTAMP,
 		due_date TIMESTAMP,
 		tags TEXT DEFAULT '[]',
 		created_by VARCHAR(20) NOT NULL,
@@ -158,6 +183,32 @@ func CreateTasksTable(db *sql.DB) error {
 	CREATE INDEX IF NOT EXISTS idx_task_group_permissions_group_id ON task_group_permissions(group_id);
 	CREATE INDEX IF NOT EXISTS idx_task_group_permissions_role_id ON task_group_permissions(role_id);
 	CREATE INDEX IF NOT EXISTS idx_task_group_permissions_user_id ON task_group_permissions(user_id);
+
+	CREATE TABLE IF NOT EXISTS task_comments (
+		id SERIAL PRIMARY KEY,
+		task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+		user_id VARCHAR(20) NOT NULL,
+		user_name VARCHAR(100) NOT NULL,
+		user_avatar TEXT DEFAULT '',
+		text TEXT NOT NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_task_comments_task_id ON task_comments(task_id);
+	CREATE INDEX IF NOT EXISTS idx_task_comments_user_id ON task_comments(user_id);
+
+	CREATE TABLE IF NOT EXISTS task_checklist_items (
+		id SERIAL PRIMARY KEY,
+		task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+		text VARCHAR(500) NOT NULL,
+		is_completed BOOLEAN DEFAULT FALSE,
+		position INTEGER DEFAULT 0,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_task_checklist_items_task_id ON task_checklist_items(task_id);
 	`
 
 	_, err := db.Exec(query)
