@@ -28,6 +28,7 @@ export interface BoardPermission {
   role_name?: string;
   user_name?: string;
   user_display_name?: string;
+  user_avatar_url?: string;
   can_view_board: boolean;
   can_view_task_list: boolean;
   can_view_tasks: boolean;

@@ -106,7 +106,10 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, boardId, onClose, onUpdate 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canEdit && isEditMode) return;
+    if (!canEdit && isEditMode) {
+      console.log('Cannot edit task: insufficient permissions');
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -247,7 +250,12 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, boardId, onClose, onUpdate 
             <X size={20} className="text-white" />
           </button>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            if (canEdit || !isEditMode) {
+              handleSubmit(e);
+            }
+          }}>
             {error && (
               <div className="bg-red-500/10 border border-red-500 text-red-400 px-4 py-3 rounded-lg mb-4">
                 {error}
@@ -283,62 +291,65 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, boardId, onClose, onUpdate 
                   {/* Title */}
                   <div className="flex items-start gap-3">
                     <div className="text-white mt-1">📋</div>
-                    <input
-                      type="text"
-                      value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      disabled={!canEdit}
-                      required
-                      className="flex-1 text-2xl font-bold text-white bg-transparent border-none focus:outline-none focus:ring-0 disabled:opacity-50 -mt-1"
-                      placeholder={isEditMode ? 'Task Title' : 'Create New Task'}
-                    />
+                    {canEdit ? (
+                      <input
+                        type="text"
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        required
+                        className="flex-1 text-2xl font-bold text-white bg-transparent border-none focus:outline-none focus:ring-0 -mt-1"
+                        placeholder={isEditMode ? 'Task Title' : 'Create New Task'}
+                      />
+                    ) : (
+                      <h2 className="flex-1 text-2xl font-bold text-white -mt-1">{formData.title}</h2>
+                    )}
                   </div>
 
                   {/* Labels Row */}
-                  <div className="flex flex-wrap gap-2">
-                    {(formData.tags || []).map((tag: string, index: number) => {
-                      const currentBoardId = boardId || task?.board_id || 0;
-                      const color = getLabelColorFromBoard(currentBoardId, tag);
-                      return (
-                        <div key={index} className="relative group">
-                          <span className={`px-3 py-1 rounded ${color.bg} ${color.text} text-sm font-medium`}>
-                            {tag}
-                          </span>
-                          {canEdit && (
-                            <button
-                              type="button"
-                              onClick={() => removeTag(tag)}
-                              className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              ×
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                  {(formData.tags && formData.tags.length > 0) && (
+                    <div className="flex flex-wrap gap-2">
+                      {formData.tags.map((tag: string, index: number) => {
+                        const currentBoardId = boardId || task?.board_id || 0;
+                        const color = getLabelColorFromBoard(currentBoardId, tag);
+                        return (
+                          <div key={index} className="relative group">
+                            <span className={`px-3 py-1 rounded ${color.bg} ${color.text} text-sm font-medium`}>
+                              {tag}
+                            </span>
+                            {canEdit && (
+                              <button
+                                type="button"
+                                onClick={() => removeTag(tag)}
+                                className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
 
                   {/* Action Buttons Row */}
-                  <div className="flex flex-wrap gap-2">
-                    {canEdit && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => setShowAssignModal(true)}
-                          className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded text-sm font-medium flex items-center gap-2 border border-white/10"
-                        >
-                          👤 Mitglieder
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setShowLabelModal(true)}
-                          className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded text-sm font-medium flex items-center gap-2 border border-white/10"
-                        >
-                          🏷️ Labels
-                        </button>
-                      </>
-                    )}
-                  </div>
+                  {canEdit && (
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowAssignModal(true)}
+                        className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded text-sm font-medium flex items-center gap-2 border border-white/10"
+                      >
+                        👤 Mitglieder
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowLabelModal(true)}
+                        className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded text-sm font-medium flex items-center gap-2 border border-white/10"
+                      >
+                        🏷️ Labels
+                      </button>
+                    </div>
+                  )}
 
                   {/* Members & Due Date Display */}
                   <div className="flex items-center gap-4 text-sm">
@@ -419,41 +430,44 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, boardId, onClose, onUpdate 
                       <span className="text-white">📝</span>
                       <h3 className="text-lg font-semibold text-white">Beschreibung</h3>
                     </div>
-                    <textarea
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      disabled={!canEdit}
-                      rows={4}
-                      className="w-full px-4 py-3 bg-[#0d0f15] border border-white/10 rounded-lg text-gray-300 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 resize-none"
-                      placeholder="Detaillierte Beschreibung hinzufügen..."
-                    />
+                    {canEdit ? (
+                      <textarea
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        rows={4}
+                        className="w-full px-4 py-3 bg-[#0d0f15] border border-white/10 rounded-lg text-gray-300 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                        placeholder="Detaillierte Beschreibung hinzufügen..."
+                      />
+                    ) : (
+                      <div className="w-full px-4 py-3 bg-[#0d0f15] border border-white/10 rounded-lg text-gray-300 min-h-[100px] whitespace-pre-wrap">
+                        {formData.description || <span className="text-gray-500 italic">Keine Beschreibung</span>}
+                      </div>
+                    )}
                   </div>
 
                   {/* Checklist */}
-                  {isEditMode && (
+                  {isEditMode && checklist && checklist.length > 0 && (
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <span className="text-white">☑️</span>
                           <h3 className="text-lg font-semibold text-white">Checkliste</h3>
                         </div>
-                        {checklist && checklist.length > 0 && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-400">
-                              {Math.round((checklist.filter(item => item.is_completed).length / checklist.length) * 100)}%
-                            </span>
-                            <div className="w-20 h-2 bg-white/10 rounded-full overflow-hidden">
-                              <div 
-                                className="h-full bg-green-500 transition-all"
-                                style={{ width: `${checklist.length > 0 ? (checklist.filter(item => item.is_completed).length / checklist.length) * 100 : 0}%` }}
-                              />
-                            </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-400">
+                            {Math.round((checklist.filter(item => item.is_completed).length / checklist.length) * 100)}%
+                          </span>
+                          <div className="w-20 h-2 bg-white/10 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-green-500 transition-all"
+                              style={{ width: `${checklist.length > 0 ? (checklist.filter(item => item.is_completed).length / checklist.length) * 100 : 0}%` }}
+                            />
                           </div>
-                        )}
+                        </div>
                       </div>
 
                       <div className="space-y-2 mb-3 max-h-64 overflow-y-auto pr-2">
-                        {(checklist || []).map((item) => (
+                        {checklist.map((item) => (
                           <div key={item.id} className="flex items-center gap-2 bg-[#0d0f15] border border-white/10 rounded-lg p-3 hover:bg-white/5">
                             {canEdit ? (
                               <button
@@ -545,51 +559,69 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, boardId, onClose, onUpdate 
                       {/* Start Date */}
                       <div>
                         <label className="block text-gray-400 mb-1">Startdatum</label>
-                        <input
-                          type="date"
-                          value={formData.start_date}
-                          onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                          disabled={!canEdit}
-                          className="w-full px-2 py-1 bg-[#1e2228] border border-white/10 rounded text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-xs"
-                        />
+                        {canEdit ? (
+                          <input
+                            type="date"
+                            value={formData.start_date}
+                            onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                            className="w-full px-2 py-1 bg-[#1e2228] border border-white/10 rounded text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
+                          />
+                        ) : (
+                          <div className="w-full px-2 py-1 bg-[#1e2228] border border-white/10 rounded text-gray-300 text-xs">
+                            {formData.start_date ? new Date(formData.start_date).toLocaleDateString('de-DE') : '-'}
+                          </div>
+                        )}
                       </div>
 
                       {/* Due Date */}
                       <div>
                         <label className="block text-gray-400 mb-1">Frist</label>
-                        <input
-                          type="date"
-                          value={formData.due_date}
-                          onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                          disabled={!canEdit}
-                          className="w-full px-2 py-1 bg-[#1e2228] border border-white/10 rounded text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-xs"
-                        />
+                        {canEdit ? (
+                          <input
+                            type="date"
+                            value={formData.due_date}
+                            onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                            className="w-full px-2 py-1 bg-[#1e2228] border border-white/10 rounded text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
+                          />
+                        ) : (
+                          <div className="w-full px-2 py-1 bg-[#1e2228] border border-white/10 rounded text-gray-300 text-xs">
+                            {formData.due_date ? new Date(formData.due_date).toLocaleDateString('de-DE') : '-'}
+                          </div>
+                        )}
                       </div>
 
                       {/* Status */}
                       <div>
                         <label className="block text-gray-400 mb-1">Status</label>
-                        <select
-                          value={formData.status}
-                          onChange={(e) => setFormData({ ...formData, status: e.target.value as TaskStatus })}
-                          disabled={!canEdit}
-                          className="w-full px-2 py-1 bg-[#1e2228] border border-white/10 rounded text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-xs"
-                        >
-                          <option value="todo" className="bg-[#1e2228]">To Do</option>
-                          <option value="in_progress" className="bg-[#1e2228]">In Progress</option>
-                          <option value="review" className="bg-[#1e2228]">Review</option>
-                          <option value="done" className="bg-[#1e2228]">Done</option>
-                        </select>
+                        {canEdit ? (
+                          <select
+                            value={formData.status}
+                            onChange={(e) => setFormData({ ...formData, status: e.target.value as TaskStatus })}
+                            className="w-full px-2 py-1 bg-[#1e2228] border border-white/10 rounded text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
+                          >
+                            <option value="todo" className="bg-[#1e2228]">To Do</option>
+                            <option value="in_progress" className="bg-[#1e2228]">In Progress</option>
+                            <option value="review" className="bg-[#1e2228]">Review</option>
+                            <option value="done" className="bg-[#1e2228]">Done</option>
+                          </select>
+                        ) : (
+                          <div className="w-full px-2 py-1 bg-[#1e2228] border border-white/10 rounded text-gray-300 text-xs">
+                            {formData.status === 'todo' && 'To Do'}
+                            {formData.status === 'in_progress' && 'In Progress'}
+                            {formData.status === 'review' && 'Review'}
+                            {formData.status === 'done' && 'Done'}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Comments Section (Right of right side - 4 columns) */}
-                  {isEditMode && (
+                      {/* Comments Section (Right of right side - 4 columns) */}
+                  {isEditMode && canReadContent && (
                     <div className="bg-[#0d0f15] border border-white/10 rounded-lg p-4 col-span-7 lg:col-span-4">
                       <h3 className="text-sm font-semibold text-white mb-3">💬 Kommentare und Aktivität</h3>
                       
-                      {/* Add Comment */}
+                      {/* Add Comment - Available with read_content permission */}
                       <div className="mb-4">
                         <textarea
                           value={newComment}

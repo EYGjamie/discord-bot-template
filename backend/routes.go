@@ -352,7 +352,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux.HandleFunc("POST /api/tasks/{taskId}/comments",
 		middleware.RequireAuth(
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				taskPermChecker.RequireTaskPermission(tables.PermissionEdit)(http.HandlerFunc(taskCommentsHandler.CreateComment)).ServeHTTP(w, r)
+				taskPermChecker.RequireTaskPermission(tables.PermissionReadContent)(http.HandlerFunc(taskCommentsHandler.CreateComment)).ServeHTTP(w, r)
 			}),
 		),
 	)

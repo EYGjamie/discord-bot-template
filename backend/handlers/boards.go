@@ -282,7 +282,8 @@ func (h *BoardsHandler) GetBoardPermissions(w http.ResponseWriter, r *http.Reque
 			bp.created_at,
 			r.name as role_name,
 			u.name as user_name,
-			COALESCE(u.display_name, u.name) as user_display_name
+			COALESCE(u.display_name, u.name) as user_display_name,
+			u.avatar_url as user_avatar_url
 		FROM board_permissions bp
 		LEFT JOIN roles r ON bp.role_id = r.id
 		LEFT JOIN users u ON bp.user_id = u.id
@@ -305,6 +306,7 @@ func (h *BoardsHandler) GetBoardPermissions(w http.ResponseWriter, r *http.Reque
 		RoleName        *string   `json:"role_name"`
 		UserName        *string   `json:"user_name"`
 		UserDisplayName *string   `json:"user_display_name"`
+		UserAvatarURL   *string   `json:"user_avatar_url"`
 		CanViewBoard    bool      `json:"can_view_board"`
 		CanViewTaskList bool      `json:"can_view_task_list"`
 		CanViewTasks    bool      `json:"can_view_tasks"`
@@ -318,7 +320,7 @@ func (h *BoardsHandler) GetBoardPermissions(w http.ResponseWriter, r *http.Reque
 		var perm PermissionResponse
 		err := rows.Scan(&perm.ID, &perm.BoardID, &perm.RoleID, &perm.UserID,
 			&perm.CanViewBoard, &perm.CanViewTaskList, &perm.CanViewTasks, &perm.CanEditTasks, &perm.CanEditBoard, &perm.CreatedAt,
-			&perm.RoleName, &perm.UserName, &perm.UserDisplayName)
+			&perm.RoleName, &perm.UserName, &perm.UserDisplayName, &perm.UserAvatarURL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -73,12 +74,171 @@ type MoveTaskRequest struct {
 	Position int               `json:"position"`
 }
 
+// UserBoardPermission holds the user's permission flags for a board
+type UserBoardPermission struct {
+	CanViewBoard    bool
+	CanViewTaskList bool
+	CanViewTasks    bool
+	CanEditTasks    bool
+	CanEditBoard    bool
+}
+
+// getUserBoardPermission returns the user's permission flags for a board
+func (h *TasksHandler) getUserBoardPermission(boardID int, userID string, userRoles []string) UserBoardPermission {
+	// Default: no permissions
+	perm := UserBoardPermission{}
+
+	// Check if user is the creator of the board (automatic full access)
+	var createdBy string
+	err := h.DB.QueryRow(`SELECT created_by FROM boards WHERE id = $1`, boardID).Scan(&createdBy)
+	if err == nil && createdBy == userID {
+		return UserBoardPermission{
+			CanViewBoard:    true,
+			CanViewTaskList: true,
+			CanViewTasks:    true,
+			CanEditTasks:    true,
+			CanEditBoard:    true,
+		}
+	}
+
+	// Check if user is admin (admin has all permissions)
+	adminRoleIDs := strings.Split(os.Getenv("ADMIN_ROLE_IDS"), ",")
+	for _, adminRole := range adminRoleIDs {
+		adminRole = strings.TrimSpace(adminRole)
+		if adminRole == "" {
+			continue
+		}
+		for _, userRole := range userRoles {
+			if userRole == adminRole {
+				return UserBoardPermission{
+					CanViewBoard:    true,
+					CanViewTaskList: true,
+					CanViewTasks:    true,
+					CanEditTasks:    true,
+					CanEditBoard:    true,
+				}
+			}
+		}
+	}
+
+	// Check if any permissions exist for this board
+	var permissionCount int
+	err = h.DB.QueryRow(`SELECT COUNT(*) FROM board_permissions WHERE board_id = $1`, boardID).Scan(&permissionCount)
+	if err != nil || permissionCount == 0 {
+		// No permissions set = allow all authenticated users
+		return UserBoardPermission{
+			CanViewBoard:    true,
+			CanViewTaskList: true,
+			CanViewTasks:    true,
+			CanEditTasks:    true,
+			CanEditBoard:    false,
+		}
+	}
+
+	// Check user-specific permission
+	var canViewBoard, canViewTaskList, canViewTasks, canEditTasks, canEditBoard sql.NullBool
+	err = h.DB.QueryRow(`
+		SELECT can_view_board, can_view_task_list, can_view_tasks, can_edit_tasks, can_edit_board
+		FROM board_permissions
+		WHERE board_id = $1 AND user_id = $2
+	`, boardID, userID).Scan(&canViewBoard, &canViewTaskList, &canViewTasks, &canEditTasks, &canEditBoard)
+
+	if err == nil {
+		if canViewBoard.Valid && canViewBoard.Bool {
+			perm.CanViewBoard = true
+		}
+		if canViewTaskList.Valid && canViewTaskList.Bool {
+			perm.CanViewTaskList = true
+		}
+		if canViewTasks.Valid && canViewTasks.Bool {
+			perm.CanViewTasks = true
+		}
+		if canEditTasks.Valid && canEditTasks.Bool {
+			perm.CanEditTasks = true
+		}
+		if canEditBoard.Valid && canEditBoard.Bool {
+			perm.CanEditBoard = true
+		}
+	}
+
+	// Check role-based permissions (merge with user permissions)
+	if len(userRoles) > 0 {
+		placeholders := make([]string, len(userRoles))
+		args := make([]interface{}, len(userRoles)+1)
+		args[0] = boardID
+
+		for i, role := range userRoles {
+			placeholders[i] = "$" + strconv.Itoa(i+2)
+			args[i+1] = role
+		}
+
+		query := `
+			SELECT can_view_board, can_view_task_list, can_view_tasks, can_edit_tasks, can_edit_board
+			FROM board_permissions
+			WHERE board_id = $1 AND role_id IN (` + strings.Join(placeholders, ",") + `)
+		`
+
+		rows, err := h.DB.Query(query, args...)
+		if err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var cvb, cvtl, cvt, cet, ceb sql.NullBool
+				if err := rows.Scan(&cvb, &cvtl, &cvt, &cet, &ceb); err == nil {
+					if cvb.Valid && cvb.Bool {
+						perm.CanViewBoard = true
+					}
+					if cvtl.Valid && cvtl.Bool {
+						perm.CanViewTaskList = true
+					}
+					if cvt.Valid && cvt.Bool {
+						perm.CanViewTasks = true
+					}
+					if cet.Valid && cet.Bool {
+						perm.CanEditTasks = true
+					}
+					if ceb.Valid && ceb.Bool {
+						perm.CanEditBoard = true
+					}
+				}
+			}
+		}
+	}
+
+	return perm
+}
+
 // GetBoardTasks returns all tasks for a board
 func (h *TasksHandler) GetBoardTasks(w http.ResponseWriter, r *http.Request) {
 	boardID, err := strconv.Atoi(r.PathValue("boardId"))
 	if err != nil {
 		http.Error(w, "Invalid board ID", http.StatusBadRequest)
 		return
+	}
+
+	// Get user ID and roles from context
+	userID := middleware.GetUserIDFromContext(r.Context())
+	var userRoles []string
+	if roles := r.Context().Value(middleware.UserRolesKey); roles != nil {
+		if roleSlice, ok := roles.([]string); ok {
+			userRoles = roleSlice
+		}
+	}
+
+	// Get user's board-level permissions
+	boardPerm := h.getUserBoardPermission(boardID, userID, userRoles)
+
+	// Determine permission level based on board permissions
+	var permissionLevel string
+	if boardPerm.CanEditTasks {
+		permissionLevel = "edit"
+	} else if boardPerm.CanViewTasks {
+		permissionLevel = "read_content"
+	} else if boardPerm.CanViewTaskList {
+		permissionLevel = "read_title"
+	} else if boardPerm.CanViewBoard {
+		permissionLevel = "existence"
+	} else {
+		permissionLevel = "none"
 	}
 
 	query := `
@@ -107,23 +267,39 @@ func (h *TasksHandler) GetBoardTasks(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Convert task to map and add permission field
+		// Build task map based on permission level
 		taskMap := map[string]interface{}{
-			"id":          task.ID,
-			"board_id":    task.BoardID,
-			"group_id":    task.GroupID,
-			"title":       task.Title,
-			"description": task.Description,
-			"status":      task.Status,
-			"position":    task.Position,
-			"assignee_id": task.AssigneeID,
-			"start_date":  task.StartDate,
-			"due_date":    task.DueDate,
-			"tags":        task.Tags,
-			"created_by":  task.CreatedBy,
-			"created_at":  task.CreatedAt,
-			"updated_at":  task.UpdatedAt,
-			"permission":  "edit", // Default permission for tasks without groups
+			"id":         task.ID,
+			"board_id":   task.BoardID,
+			"status":     task.Status,
+			"position":   task.Position,
+			"created_at": task.CreatedAt,
+			"permission": permissionLevel,
+		}
+
+		// Always include assignee and due date (existence level)
+		if task.AssigneeID != nil {
+			taskMap["assignee_id"] = *task.AssigneeID
+		}
+		if task.DueDate != nil {
+			taskMap["due_date"] = *task.DueDate
+		}
+		if task.StartDate != nil {
+			taskMap["start_date"] = *task.StartDate
+		}
+
+		// Add title if permission allows (read_title or higher)
+		if boardPerm.CanViewTaskList || boardPerm.CanViewTasks || boardPerm.CanEditTasks {
+			taskMap["title"] = task.Title
+			taskMap["group_id"] = task.GroupID
+		}
+
+		// Add content if permission allows (read_content or higher)
+		if boardPerm.CanViewTasks || boardPerm.CanEditTasks {
+			taskMap["description"] = task.Description
+			taskMap["tags"] = task.Tags
+			taskMap["created_by"] = task.CreatedBy
+			taskMap["updated_at"] = task.UpdatedAt
 		}
 
 		tasks = append(tasks, taskMap)

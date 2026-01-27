@@ -68,7 +68,13 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging = false, onClick }
     (new Date(task.due_date).getTime() - new Date().getTime()) < (24 * 60 * 60 * 1000); // Less than 24 hours
 
   // Only allow clicking if user has read_content permission
-  const handleClick = canReadContent ? onClick : undefined;
+  const handleClick = (e: React.MouseEvent) => {
+    if (canReadContent && onClick) {
+      onClick();
+    } else {
+      e.stopPropagation();
+    }
+  };
 
   return (
     <div
@@ -78,7 +84,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging = false, onClick }
       {...listeners}
       onClick={handleClick}
       className={`bg-[#282c34] rounded-lg shadow-sm border border-white/10 p-3 hover:bg-[#2d3139] hover:shadow-lg transition-all ${
-        canReadContent ? 'cursor-pointer' : 'cursor-default'
+        canReadContent ? 'cursor-pointer' : 'cursor-not-allowed opacity-75'
       } ${
         isDragging || isSortableDragging ? 'opacity-50 rotate-2' : ''
       }`}

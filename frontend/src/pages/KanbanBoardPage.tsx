@@ -183,6 +183,11 @@ const KanbanBoardPage: React.FC = () => {
   };
 
   const handleTaskClick = (task: FilteredTask) => {
+    // Only open modal if user has permission to view task content
+    const canReadContent = task.permission && ['read_content', 'edit', 'delete'].includes(task.permission);
+    if (!canReadContent) {
+      return;
+    }
     setSelectedTask(task);
     setShowTaskModal(true);
   };
