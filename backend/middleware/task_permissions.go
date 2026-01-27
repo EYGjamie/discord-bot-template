@@ -155,8 +155,10 @@ func (c *TaskPermissionChecker) RequireTaskPermission(required tables.Permission
 
 			// Get user roles from context (should be set by auth middleware)
 			var userRoles []string
-			if roles := r.Context().Value("user_roles"); roles != nil {
-				userRoles = roles.([]string)
+			if roles := r.Context().Value(UserRolesKey); roles != nil {
+				if roleSlice, ok := roles.([]string); ok {
+					userRoles = roleSlice
+				}
 			}
 
 			permission, err := c.GetUserTaskPermission(taskID, userID, userRoles)
@@ -366,8 +368,10 @@ func (b *BoardPermissionChecker) RequireBoardView() func(http.Handler) http.Hand
 			}
 
 			var userRoles []string
-			if roles := r.Context().Value("user_roles"); roles != nil {
-				userRoles = roles.([]string)
+			if roles := r.Context().Value(UserRolesKey); roles != nil {
+				if roleSlice, ok := roles.([]string); ok {
+					userRoles = roleSlice
+				}
 			}
 
 			canView, canCreate, err := b.GetUserBoardPermission(boardID, userID, userRoles)
@@ -404,8 +408,10 @@ func (b *BoardPermissionChecker) RequireBoardCreate() func(http.Handler) http.Ha
 			}
 
 			var userRoles []string
-			if roles := r.Context().Value("user_roles"); roles != nil {
-				userRoles = roles.([]string)
+			if roles := r.Context().Value(UserRolesKey); roles != nil {
+				if roleSlice, ok := roles.([]string); ok {
+					userRoles = roleSlice
+				}
 			}
 
 			_, canCreate, err := b.GetUserBoardPermission(reqBody.BoardID, userID, userRoles)

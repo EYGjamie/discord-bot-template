@@ -181,6 +181,13 @@ func InitializeTables(db *sql.DB) error {
 	}
 	log.Println("Tasks tables initialized successfully")
 
+	// Erstelle Notification-Settings-Tabellen (für Task-Benachrichtigungen)
+	if err := tables.CreateNotificationSettingsTable(db); err != nil {
+		log.Printf("Error creating notification_settings tables: %v", err)
+		return err
+	}
+	log.Println("Notification-Settings tables initialized successfully")
+
 	log.Println("All database tables initialized successfully")
 	return nil
 }

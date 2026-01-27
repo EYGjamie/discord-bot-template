@@ -26,6 +26,9 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux.HandleFunc("/api/guild/roles", handlers.GuildRolesHandler(s.botSession, s.botDB))
 	mux.HandleFunc("/api/guild/channels", handlers.GuildChannelsHandler(s.botSession, s.botDB))
 
+	// Task Notification Endpoint
+	mux.HandleFunc("/api/notifications/task", handlers.TaskNotificationHandler(s.botSession, s.botDB))
+
 	// Wrap mit CORS Middleware
 	return s.corsMiddleware(mux)
 }

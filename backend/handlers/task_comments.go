@@ -35,7 +35,7 @@ func (h *TaskCommentsHandler) GetComments(w http.ResponseWriter, r *http.Request
 		SELECT id, task_id, user_id, user_name, user_avatar, text, created_at, updated_at
 		FROM task_comments
 		WHERE task_id = $1
-		ORDER BY created_at ASC
+		ORDER BY created_at DESC
 	`
 
 	rows, err := h.DB.Query(query, taskID)
@@ -114,6 +114,14 @@ func (h *TaskCommentsHandler) CreateComment(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// Get task assignee(s) to notify
+	var assigneeID *string
+	err = h.DB.QueryRow(`SELECT assignee_id FROM tasks WHERE id = $1`, taskID).Scan(&assigneeID)
+	if err == nil && assigneeID != nil && *assigneeID != "" && *assigneeID != userID {
+		// Notify assignee about new comment (don't notify if commenter is the assignee)
+		go SendTaskCommentNotification(taskID, userID, req.Text, []string{*assigneeID})
 	}
 
 	w.Header().Set("Content-Type", "application/json")

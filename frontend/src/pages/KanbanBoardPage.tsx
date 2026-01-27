@@ -138,6 +138,25 @@ const KanbanBoardPage: React.FC = () => {
   };
 
   const handleTaskClick = (task: FilteredTask) => {
+    // Check if user has permission to view full task details (read_content)
+    const permissionOrder: Record<string, number> = {
+      'none': 0,
+      'existence': 1,
+      'read_title': 2,
+      'read_content': 3,
+      'edit': 4,
+      'delete': 5,
+    };
+
+    const userPermission = permissionOrder[task.permission || 'none'];
+    const requiredPermission = permissionOrder['read_content'];
+
+    if (userPermission < requiredPermission) {
+      // User doesn't have permission to view full task details
+      alert('Sie haben nicht die Berechtigung, diese Aufgabe vollständig zu öffnen.');
+      return;
+    }
+
     setSelectedTask(task);
     setShowTaskModal(true);
   };

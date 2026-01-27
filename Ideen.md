@@ -36,3 +36,9 @@ Interne Stellenangebote
 Ticket overview
 Auf der Userpage Daten bezüglich TicketBearbeitung (Anzahl, Dauer bis Ticket geschlossen wird etc)
 Statistiken zu Club und Teams
+
+
+## TODO
+Tasks:
+- neue Kommentare OBEN
+- Berechtigungen überprüfugen

@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -166,6 +167,41 @@ func (h *TasksHandler) GetTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Apply permission-based filtering
+	permissionValue := r.Context().Value("task_permission")
+	if permissionValue != nil {
+		permission, ok := permissionValue.(tables.PermissionLevel)
+		if ok {
+			// Filter data based on permission level
+			permissionOrder := map[tables.PermissionLevel]int{
+				tables.PermissionNone:        0,
+				tables.PermissionExistence:   1,
+				tables.PermissionReadTitle:   2,
+				tables.PermissionReadContent: 3,
+				tables.PermissionEdit:        4,
+				tables.PermissionDelete:      5,
+			}
+
+			currentLevel := permissionOrder[permission]
+
+			// If less than ReadContent, remove description and other sensitive data
+			if currentLevel < permissionOrder[tables.PermissionReadContent] {
+				task.Description = ""
+				task.Tags = tables.TagArray([]string{})
+			}
+
+			// If less than ReadTitle, remove title
+			if currentLevel < permissionOrder[tables.PermissionReadTitle] {
+				task.Title = "[Restricted]"
+			}
+
+			// If only Existence, remove most data except assignee and dates
+			if currentLevel < permissionOrder[tables.PermissionReadTitle] {
+				task.Status = ""
+			}
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(task)
 }
@@ -232,6 +268,11 @@ func (h *TasksHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Send notification if task is assigned to someone
+	if req.AssigneeID != nil && *req.AssigneeID != "" {
+		go SendTaskNotification("task_assignment", task.ID, *req.AssigneeID, userID, "")
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(task)
@@ -242,6 +283,32 @@ func (h *TasksHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	taskID, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		http.Error(w, "Invalid task ID", http.StatusBadRequest)
+		return
+	}
+
+	userID := middleware.GetUserIDFromContext(r.Context())
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Get old task data to detect changes
+	var oldTask tables.Task
+	err = h.DB.QueryRow(`
+		SELECT id, board_id, group_id, title, description, status, position,
+		       assignee_id, start_date, due_date, tags, created_by, created_at, updated_at
+		FROM tasks WHERE id = $1
+	`, taskID).Scan(
+		&oldTask.ID, &oldTask.BoardID, &oldTask.GroupID, &oldTask.Title, &oldTask.Description,
+		&oldTask.Status, &oldTask.Position, &oldTask.AssigneeID, &oldTask.StartDate, &oldTask.DueDate,
+		&oldTask.Tags, &oldTask.CreatedBy, &oldTask.CreatedAt, &oldTask.UpdatedAt,
+	)
+	if err == sql.ErrNoRows {
+		http.Error(w, "Task not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -291,6 +358,80 @@ func (h *TasksHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// Build change description for notification
+	var changes []string
+	if oldTask.Title != task.Title {
+		changes = append(changes, "Titel geändert")
+	}
+	if oldTask.Description != task.Description {
+		changes = append(changes, "Beschreibung geändert")
+	}
+	if oldTask.Status != task.Status {
+		changes = append(changes, fmt.Sprintf("Status: %s → %s", oldTask.Status, task.Status))
+	}
+
+	// Check if assignee changed
+	oldAssignee := ""
+	newAssignee := ""
+	if oldTask.AssigneeID != nil {
+		oldAssignee = *oldTask.AssigneeID
+	}
+	if task.AssigneeID != nil {
+		newAssignee = *task.AssigneeID
+	}
+
+	// Check if due date changed
+	oldDueDateStr := ""
+	newDueDateStr := ""
+	if oldTask.DueDate != nil {
+		oldDueDateStr = oldTask.DueDate.Format("02.01.2006 15:04")
+	}
+	if task.DueDate != nil {
+		newDueDateStr = task.DueDate.Format("02.01.2006 15:04")
+	}
+
+	// Get all assigned users for notifications (old and new assignee)
+	notifyUsers := make(map[string]bool)
+	if oldAssignee != "" {
+		notifyUsers[oldAssignee] = true
+	}
+	if newAssignee != "" {
+		notifyUsers[newAssignee] = true
+	}
+
+	// Convert map to slice
+	var userIDs []string
+	for userID := range notifyUsers {
+		userIDs = append(userIDs, userID)
+	}
+
+	// Handle assignee changes
+	if oldAssignee != newAssignee {
+		if newAssignee != "" && oldAssignee == "" {
+			// New assignment
+			go SendTaskNotification("task_assignment", task.ID, newAssignee, userID, "")
+		} else if newAssignee != "" && oldAssignee != "" && newAssignee != oldAssignee {
+			// Reassignment - notify old assignee about unassignment, new assignee about assignment
+			go SendTaskNotification("task_unassignment", task.ID, oldAssignee, userID, "")
+			go SendTaskNotification("task_assignment", task.ID, newAssignee, userID, "")
+		} else if newAssignee == "" && oldAssignee != "" {
+			// Unassignment
+			go SendTaskNotification("task_unassignment", task.ID, oldAssignee, userID, "")
+		}
+	}
+
+	// Handle due date changes
+	if oldDueDateStr != newDueDateStr && len(userIDs) > 0 {
+		changes = append(changes, "Fälligkeitsdatum geändert")
+		go SendTaskDueDateChangeNotification(task.ID, userID, oldDueDateStr, newDueDateStr, userIDs)
+	}
+
+	// Send update notification for other changes if there are any and task is assigned
+	if len(changes) > 0 && len(userIDs) > 0 {
+		changeDesc := strings.Join(changes, ", ")
+		go SendTaskNotification("task_update", task.ID, "", userID, changeDesc)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

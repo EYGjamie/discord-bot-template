@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"discord-bot-template/backend/middleware"
 	"discord-bot-template/shared/database/tables"
 	"encoding/json"
 	"net/http"
@@ -71,6 +72,12 @@ func (h *TaskChecklistHandler) CreateChecklistItem(w http.ResponseWriter, r *htt
 		return
 	}
 
+	userID := middleware.GetUserIDFromContext(r.Context())
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	var req CreateChecklistItemRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -105,6 +112,14 @@ func (h *TaskChecklistHandler) CreateChecklistItem(w http.ResponseWriter, r *htt
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// Get task assignee(s) to notify
+	var assigneeID *string
+	err = h.DB.QueryRow(`SELECT assignee_id FROM tasks WHERE id = $1`, taskID).Scan(&assigneeID)
+	if err == nil && assigneeID != nil && *assigneeID != "" && *assigneeID != userID {
+		// Notify assignee about new checklist item (don't notify if creator is the assignee)
+		go SendTaskChecklistItemNotification(taskID, userID, req.Text, []string{*assigneeID})
 	}
 
 	w.Header().Set("Content-Type", "application/json")

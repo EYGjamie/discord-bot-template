@@ -236,6 +236,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	boardsHandler := &handlers.BoardsHandler{DB: s.db.DB()}
 	tasksHandler := &handlers.TasksHandler{DB: s.db.DB()}
 	taskGroupsHandler := &handlers.TaskGroupsHandler{DB: s.db.DB()}
+	notificationSettingsHandler := &handlers.NotificationSettingsHandler{DB: s.db.DB()}
 	taskPermChecker := &middleware.TaskPermissionChecker{DB: s.db.DB()}
 	boardPermChecker := &middleware.BoardPermissionChecker{DB: s.db.DB()}
 	requireAuthWithDB := middleware.RequireAuthWithDB(s.db.DB())
@@ -312,7 +313,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux.HandleFunc("GET /api/tasks/{id}",
 		middleware.RequireAuth(
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				taskPermChecker.RequireTaskPermission(tables.PermissionReadTitle)(http.HandlerFunc(tasksHandler.GetTask)).ServeHTTP(w, r)
+				taskPermChecker.RequireTaskPermission(tables.PermissionReadContent)(http.HandlerFunc(tasksHandler.GetTask)).ServeHTTP(w, r)
 			}),
 		),
 	)
@@ -344,7 +345,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux.HandleFunc("GET /api/tasks/{taskId}/comments",
 		middleware.RequireAuth(
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				taskPermChecker.RequireTaskPermission(tables.PermissionReadTitle)(http.HandlerFunc(taskCommentsHandler.GetComments)).ServeHTTP(w, r)
+				taskPermChecker.RequireTaskPermission(tables.PermissionReadContent)(http.HandlerFunc(taskCommentsHandler.GetComments)).ServeHTTP(w, r)
 			}),
 		),
 	)
@@ -367,7 +368,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux.HandleFunc("GET /api/tasks/{taskId}/checklist",
 		middleware.RequireAuth(
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				taskPermChecker.RequireTaskPermission(tables.PermissionReadTitle)(http.HandlerFunc(taskChecklistHandler.GetChecklistItems)).ServeHTTP(w, r)
+				taskPermChecker.RequireTaskPermission(tables.PermissionReadContent)(http.HandlerFunc(taskChecklistHandler.GetChecklistItems)).ServeHTTP(w, r)
 			}),
 		),
 	)
@@ -434,6 +435,20 @@ func (s *Server) RegisterRoutes() http.Handler {
 				http.HandlerFunc(taskGroupsHandler.DeleteTaskGroupPermission),
 			),
 		),
+	)
+
+	// Notification Settings routes (user-specific, protected)
+	mux.HandleFunc("GET /api/notification-settings",
+		middleware.RequireAuth(http.HandlerFunc(notificationSettingsHandler.GetNotificationSettings)),
+	)
+	mux.HandleFunc("PUT /api/notification-settings",
+		middleware.RequireAuth(http.HandlerFunc(notificationSettingsHandler.UpdateNotificationSettings)),
+	)
+	mux.HandleFunc("GET /api/notification-settings/boards/{boardId}",
+		middleware.RequireAuth(http.HandlerFunc(notificationSettingsHandler.GetBoardNotificationSettings)),
+	)
+	mux.HandleFunc("PUT /api/notification-settings/boards/{boardId}",
+		middleware.RequireAuth(http.HandlerFunc(notificationSettingsHandler.UpdateBoardNotificationSettings)),
 	)
 
 	// Health check

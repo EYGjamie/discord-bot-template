@@ -9,6 +9,7 @@ import EventsPage from './pages/EventsPage';
 import MatchesPage from './pages/MatchesPage';
 import DiscordPage from './pages/DiscordPage';
 import SettingsPage from './pages/SettingsPage';
+import NotificationsPage from './pages/NotificationsPage';
 import BoardsListPage from './pages/BoardsListPage';
 import CreateBoardPage from './pages/CreateBoardPage';
 import KanbanBoardPage from './pages/KanbanBoardPage';
@@ -99,7 +100,7 @@ function App() {
             </AuthProtectedRoute>
           } 
         />
-        <Route path="/notifications" element={<AuthProtectedRoute><DashboardLayout><div className="p-6 text-white">Notifications Page</div></DashboardLayout></AuthProtectedRoute>} />
+        <Route path="/notifications" element={<AuthProtectedRoute><DashboardLayout><NotificationsPage /></DashboardLayout></AuthProtectedRoute>} />
         
         {/* Settings - requires admin permission */}
         <Route 
