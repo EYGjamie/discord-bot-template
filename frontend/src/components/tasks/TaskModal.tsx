@@ -168,6 +168,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, boardId, onClose, onUpdate 
     // For now, we only support single assignee in the backend
     // So we'll take the first one or empty string if none selected
     const assignee = (assignees && assignees.length > 0) ? assignees[0] : '';
+    console.log('handleAssign called with:', assignees, 'setting assignee_id to:', assignee);
     setFormData({ ...formData, assignee_id: assignee });
   };
 

@@ -54,15 +54,23 @@ const AssignModal: React.FC<AssignModalProps> = ({ currentAssignees, onClose, on
   };
 
   const toggleAssignee = (userId: string) => {
+    // Single-select mode: Only one assignee at a time
     if (selectedAssignees.includes(userId)) {
-      setSelectedAssignees(selectedAssignees.filter((id) => id !== userId));
+      // If clicking the same user, deselect them
+      setSelectedAssignees([]);
     } else {
-      setSelectedAssignees([...selectedAssignees, userId]);
+      // Select only this user
+      setSelectedAssignees([userId]);
     }
   };
 
   const handleAssign = () => {
     onAssign(selectedAssignees);
+    onClose();
+  };
+
+  const handleRemoveAll = () => {
+    onAssign([]);
     onClose();
   };
 
@@ -104,7 +112,7 @@ const AssignModal: React.FC<AssignModalProps> = ({ currentAssignees, onClose, on
         {/* Selected Count */}
         <div className="px-6 py-3 bg-blue-500/10 border-b border-white/10">
           <p className="text-sm text-blue-400">
-            {selectedAssignees.length} Benutzer ausgewählt
+            {selectedAssignees.length > 0 ? '1 Benutzer ausgewählt' : 'Kein Benutzer ausgewählt'}
           </p>
         </div>
 
@@ -162,19 +170,28 @@ const AssignModal: React.FC<AssignModalProps> = ({ currentAssignees, onClose, on
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 p-4 border-t border-white/10">
+        <div className="flex items-center justify-between gap-2 p-4 border-t border-white/10">
           <button
-            onClick={onClose}
-            className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-colors"
+            onClick={handleRemoveAll}
+            className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-600/30 rounded-lg transition-colors"
           >
-            Abbrechen
+            Alle entfernen
           </button>
-          <button
-            onClick={handleAssign}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-          >
-            Ausgewählte zuweisen
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-colors"
+            >
+              Abbrechen
+            </button>
+            <button
+              onClick={handleAssign}
+              disabled={selectedAssignees.length === 0}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Benutzer zuweisen
+            </button>
+          </div>
         </div>
       </div>
     </div>
