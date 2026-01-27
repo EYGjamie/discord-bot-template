@@ -4,6 +4,8 @@ import type { FilteredTask, Task, TaskStatus, CreateTaskRequest, UpdateTaskReque
 import { tasksService } from '../../services/tasks';
 import { commentsService, checklistService } from '../../services/taskExtras';
 import AssignModal from './AssignModal';
+import LabelModal from './LabelModal';
+import { getLabelColorFromBoard } from '../../utils/labelColors';
 
 interface TaskModalProps {
   task?: FilteredTask | Task;
@@ -31,6 +33,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, boardId, onClose, onUpdate 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showLabelModal, setShowLabelModal] = useState(false);
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
@@ -136,8 +139,12 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, boardId, onClose, onUpdate 
   const handleAssign = (assignees: string[]) => {
     // For now, we only support single assignee in the backend
     // So we'll take the first one or empty string if none selected
-    const assignee = assignees.length > 0 ? assignees[0] : '';
+    const assignee = (assignees && assignees.length > 0) ? assignees[0] : '';
     setFormData({ ...formData, assignee_id: assignee });
+  };
+
+  const handleLabelsUpdate = (labels: string[]) => {
+    setFormData({ ...formData, tags: labels });
   };
 
   const handleAddComment = async () => {
@@ -261,18 +268,11 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, boardId, onClose, onUpdate 
                   {/* Labels Row */}
                   <div className="flex flex-wrap gap-2">
                     {(formData.tags || []).map((tag: string, index: number) => {
-                      const colors = [
-                        'bg-green-600 text-white',
-                        'bg-yellow-500 text-gray-900',
-                        'bg-orange-600 text-white',
-                        'bg-red-600 text-white',
-                        'bg-purple-600 text-white',
-                        'bg-blue-600 text-white',
-                      ];
-                      const colorIndex = tag.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
+                      const currentBoardId = boardId || task?.board_id || 0;
+                      const color = getLabelColorFromBoard(currentBoardId, tag);
                       return (
                         <div key={index} className="relative group">
-                          <span className={`px-3 py-1 rounded ${colors[colorIndex]} text-sm font-medium`}>
+                          <span className={`px-3 py-1 rounded ${color.bg} ${color.text} text-sm font-medium`}>
                             {tag}
                           </span>
                           {canEdit && (
@@ -302,15 +302,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, boardId, onClose, onUpdate 
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            const newTag = prompt('Label Name:');
-                            if (newTag?.trim()) {
-                              const tags = formData.tags || [];
-                              if (!tags.includes(newTag.trim())) {
-                                setFormData({ ...formData, tags: [...tags, newTag.trim()] });
-                              }
-                            }
-                          }}
+                          onClick={() => setShowLabelModal(true)}
                           className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded text-sm font-medium flex items-center gap-2 border border-white/10"
                         >
                           🏷️ Labels
@@ -405,7 +397,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, boardId, onClose, onUpdate 
                             <div className="w-20 h-2 bg-white/10 rounded-full overflow-hidden">
                               <div 
                                 className="h-full bg-green-500 transition-all"
-                                style={{ width: `${(checklist.filter(item => item.is_completed).length / checklist.length) * 100}%` }}
+                                style={{ width: `${checklist.length > 0 ? (checklist.filter(item => item.is_completed).length / checklist.length) * 100 : 0}%` }}
                               />
                             </div>
                           </div>
@@ -618,6 +610,16 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, boardId, onClose, onUpdate 
           currentAssignees={formData.assignee_id ? [formData.assignee_id] : []}
           onClose={() => setShowAssignModal(false)}
           onAssign={handleAssign}
+        />
+      )}
+
+      {/* Label Modal */}
+      {showLabelModal && (
+        <LabelModal
+          boardId={boardId || task?.board_id || 0}
+          currentLabels={formData.tags || []}
+          onClose={() => setShowLabelModal(false)}
+          onSave={handleLabelsUpdate}
         />
       )}
     </div>

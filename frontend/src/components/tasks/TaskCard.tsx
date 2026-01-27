@@ -3,6 +3,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { FilteredTask } from '../../types/tasks';
 import { Clock, CheckSquare, MessageSquare } from 'lucide-react';
+import { getLabelColorFromBoard } from '../../utils/labelColors';
 
 interface TaskCardProps {
   task: FilteredTask;
@@ -53,22 +54,12 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging = false, onClick }
       {canReadContent && task.tags && Array.isArray(task.tags) && task.tags.length > 0 && (
         <div className="flex gap-1 mb-2">
           {task.tags.slice(0, 5).map((tag: string, index: number) => {
-            // Generate consistent colors based on tag name
-            const colors = [
-              'bg-green-500',
-              'bg-yellow-500', 
-              'bg-orange-500',
-              'bg-red-500',
-              'bg-purple-500',
-              'bg-blue-500',
-              'bg-pink-500',
-              'bg-indigo-500',
-            ];
-            const colorIndex = tag.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
+            const color = getLabelColorFromBoard(task.board_id, tag);
+            if (!color) return null;
             return (
               <div
                 key={index}
-                className={`h-2 w-10 rounded-full ${colors[colorIndex]}`}
+                className={`h-2 w-10 rounded-full ${color.bg}`}
                 title={tag}
               />
             );

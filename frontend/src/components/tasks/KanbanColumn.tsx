@@ -14,6 +14,8 @@ const KanbanColumnComponent: React.FC<KanbanColumnProps> = ({ column, onTaskClic
     id: column.id,
   });
 
+  const tasks = column.tasks || [];
+
   return (
     <div
       ref={setNodeRef}
@@ -27,17 +29,17 @@ const KanbanColumnComponent: React.FC<KanbanColumnProps> = ({ column, onTaskClic
           {column.title}
         </h3>
         <span className="px-2 py-1 bg-white/10 rounded-full text-xs text-gray-400">
-          {column.tasks.length}
+          {tasks.length}
         </span>
       </div>
 
       {/* Tasks */}
       <SortableContext
-        items={column.tasks.map((task) => task.id)}
+        items={tasks.map((task) => task.id)}
         strategy={verticalListSortingStrategy}
       >
         <div className="space-y-3">
-          {column.tasks.map((task) => (
+          {tasks.map((task) => (
             <TaskCard
               key={task.id}
               task={task}
@@ -47,7 +49,7 @@ const KanbanColumnComponent: React.FC<KanbanColumnProps> = ({ column, onTaskClic
         </div>
       </SortableContext>
 
-      {column.tasks.length === 0 && (
+      {tasks.length === 0 && (
         <div className="text-center text-gray-500 text-sm py-8">
           No tasks yet
         </div>
