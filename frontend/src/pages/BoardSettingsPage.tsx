@@ -1,10 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Shield, User, Users, Search, Edit } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Shield, User, Users, Search, Edit, Save, Palette } from 'lucide-react';
 import { boardsService } from '../services/tasks';
 import { api } from '../services/api';
 import type { Board, BoardPermission } from '../types/tasks';
 import type { Role, MemberInfo, RolesAndMembersResponse } from '../types/discord';
+
+const BOARD_COLORS = [
+  { name: 'Blau', value: '#3b82f6' },
+  { name: 'Grün', value: '#10b981' },
+  { name: 'Gelb', value: '#f59e0b' },
+  { name: 'Rot', value: '#ef4444' },
+  { name: 'Lila', value: '#8b5cf6' },
+  { name: 'Pink', value: '#ec4899' },
+  { name: 'Türkis', value: '#06b6d4' },
+  { name: 'Orange', value: '#f97316' },
+  { name: 'Indigo', value: '#6366f1' },
+  { name: 'Lime', value: '#84cc16' },
+];
 
 const BoardSettingsPage: React.FC = () => {
   const { boardId } = useParams<{ boardId: string }>();
@@ -21,6 +34,13 @@ const BoardSettingsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<MemberInfo[]>([]);
   const [selectedMember, setSelectedMember] = useState<MemberInfo | null>(null);
+  const [activeTab, setActiveTab] = useState<'general' | 'permissions'>('general');
+  const [boardForm, setBoardForm] = useState({
+    name: '',
+    description: '',
+    color: '#3b82f6',
+  });
+  const [savingBoard, setSavingBoard] = useState(false);
 
   useEffect(() => {
     if (boardId) {
@@ -42,6 +62,11 @@ const BoardSettingsPage: React.FC = () => {
     try {
       const data = await boardsService.getById(Number(boardId));
       setBoard(data);
+      setBoardForm({
+        name: data.name,
+        description: data.description || '',
+        color: data.color || '#3b82f6',
+      });
     } catch (err: any) {
       setError(err?.message || 'Failed to load board');
     }
@@ -157,6 +182,22 @@ const BoardSettingsPage: React.FC = () => {
     }
   };
 
+  const handleBoardUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!board) return;
+
+    try {
+      setSavingBoard(true);
+      setError(null);
+      await boardsService.update(board.id, boardForm);
+      await loadBoard();
+      setSavingBoard(false);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to update board');
+      setSavingBoard(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -186,8 +227,8 @@ const BoardSettingsPage: React.FC = () => {
           <ArrowLeft size={24} />
         </button>
         <div>
-          <h1 className="text-3xl font-bold text-white">{board.name} - Settings</h1>
-          <p className="text-gray-400 mt-1">Manage board permissions</p>
+          <h1 className="text-3xl font-bold text-white">{board.name} - Einstellungen</h1>
+          <p className="text-gray-400 mt-1">Board-Einstellungen und Berechtigungen verwalten</p>
         </div>
       </div>
 
@@ -197,34 +238,182 @@ const BoardSettingsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Info Box */}
-      <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-6">
-        <div className="flex items-start gap-3">
-          <Shield className="text-blue-400 mt-1" size={20} />
-          <div>
-            <h3 className="text-white font-semibold mb-1">Permission System</h3>
-            <p className="text-sm text-gray-400">
-              If no permissions are set, all authenticated users have full access to this board.
-              Once you add permissions, only users/roles with explicit permissions can access the board.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Add Permission Button */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-white">Board Permissions</h2>
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6 border-b border-white/10">
         <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          onClick={() => setActiveTab('general')}
+          className={`px-6 py-3 font-medium transition-colors relative ${
+            activeTab === 'general'
+              ? 'text-blue-400'
+              : 'text-gray-400 hover:text-white'
+          }`}
         >
-          <Plus size={20} />
-          Add Permission
+          Allgemein
+          {activeTab === 'general' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400" />
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('permissions')}
+          className={`px-6 py-3 font-medium transition-colors relative ${
+            activeTab === 'permissions'
+              ? 'text-blue-400'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Shield size={18} />
+            Berechtigungen
+          </div>
+          {activeTab === 'permissions' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400" />
+          )}
         </button>
       </div>
 
-      {/* Permissions List */}
-      <div className="space-y-3">
+      {/* General Settings Tab */}
+      {activeTab === 'general' && (
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-8">
+          <h2 className="text-2xl font-bold text-white mb-6">Board-Einstellungen</h2>
+          
+          <form onSubmit={handleBoardUpdate} className="space-y-6">
+            {/* Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Board-Name *
+              </label>
+              <input
+                type="text"
+                value={boardForm.name}
+                onChange={(e) => setBoardForm({ ...boardForm, name: e.target.value })}
+                required
+                className="w-full px-4 py-3 bg-[#0d0f15] border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="z.B. Sprint Planning"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Beschreibung
+              </label>
+              <textarea
+                value={boardForm.description}
+                onChange={(e) => setBoardForm({ ...boardForm, description: e.target.value })}
+                rows={4}
+                className="w-full px-4 py-3 bg-[#0d0f15] border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                placeholder="Beschreiben Sie das Board..."
+              />
+            </div>
+
+            {/* Color Picker */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
+                <Palette size={18} />
+                Board-Farbe
+              </label>
+              <div className="grid grid-cols-5 md:grid-cols-10 gap-3">
+                {BOARD_COLORS.map((color) => (
+                  <button
+                    key={color.value}
+                    type="button"
+                    onClick={() => setBoardForm({ ...boardForm, color: color.value })}
+                    className={`relative h-16 rounded-lg transition-all ${
+                      boardForm.color === color.value
+                        ? 'ring-2 ring-white ring-offset-2 ring-offset-[#1e2228] scale-110'
+                        : 'hover:scale-105'
+                    }`}
+                    style={{ backgroundColor: color.value }}
+                    title={color.name}
+                  >
+                    {boardForm.color === color.value && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-white text-2xl">✓</span>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+              <p className="text-sm text-gray-400 mt-2">
+                Diese Farbe wird als Akzent im Board verwendet
+              </p>
+            </div>
+
+            {/* Preview */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-3">
+                Vorschau
+              </label>
+              <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden flex">
+                <div
+                  className="w-1.5 flex-shrink-0"
+                  style={{ backgroundColor: boardForm.color }}
+                />
+                <div className="flex-1 p-4 flex items-center gap-4">
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                    style={{ backgroundColor: boardForm.color + '20', color: boardForm.color }}
+                  >
+                    📋
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-white mb-1">
+                      {boardForm.name || 'Board-Name'}
+                    </h3>
+                    <p className="text-sm text-gray-400 line-clamp-2">
+                      {boardForm.description || 'Keine Beschreibung'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-3 pt-6 border-t border-white/10">
+              <button
+                type="submit"
+                disabled={savingBoard || !boardForm.name.trim()}
+                className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Save size={18} />
+                {savingBoard ? 'Speichert...' : 'Änderungen speichern'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Permissions Tab */}
+      {activeTab === 'permissions' && (
+        <>
+          {/* Info Box */}
+          <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <Shield className="text-blue-400 mt-1" size={20} />
+              <div>
+                <h3 className="text-white font-semibold mb-1">Berechtigungssystem</h3>
+                <p className="text-sm text-gray-400">
+                  Wenn keine Berechtigungen gesetzt sind, haben alle authentifizierten Benutzer vollen Zugriff auf dieses Board.
+                  Sobald Sie Berechtigungen hinzufügen, können nur Benutzer/Rollen mit expliziten Berechtigungen auf das Board zugreifen.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Add Permission Button */}
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold text-white">Board Permissions</h2>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            >
+              <Plus size={20} />
+              Add Permission
+            </button>
+          </div>
+
+          {/* Permissions List */}
+          <div className="space-y-3">
         {permissions.length === 0 ? (
           <div className="bg-white/5 border border-white/10 rounded-xl p-8 text-center">
             <Shield className="mx-auto mb-4 text-gray-500" size={48} />
@@ -580,6 +769,8 @@ const BoardSettingsPage: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );

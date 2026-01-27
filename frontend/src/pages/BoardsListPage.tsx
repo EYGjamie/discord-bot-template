@@ -79,24 +79,33 @@ const BoardsListPage: React.FC = () => {
             <div
               key={board.id}
               onClick={() => navigate(`/tasks/boards/${board.id}`)}
-              className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all cursor-pointer group"
+              className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:bg-white/10 transition-all cursor-pointer group flex"
             >
-              <div className="flex items-start justify-between mb-4">
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
-                  style={{ backgroundColor: board.color + '20', color: board.color }}
-                >
-                  📋
+              {/* Color Stripe */}
+              <div
+                className="w-1.5 flex-shrink-0"
+                style={{ backgroundColor: board.color || '#3b82f6' }}
+              />
+              
+              {/* Content */}
+              <div className="flex-1 p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                    style={{ backgroundColor: (board.color || '#3b82f6') + '20', color: board.color || '#3b82f6' }}
+                  >
+                    📋
+                  </div>
                 </div>
-              </div>
-              <h3 className="text-lg font-bold text-white mb-2 group-hover:text-blue-400 transition-colors">
-                {board.name}
-              </h3>
-              <p className="text-gray-400 text-sm line-clamp-2 mb-4">
-                {board.description || 'No description'}
-              </p>
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <span>Created {new Date(board.created_at).toLocaleDateString()}</span>
+                <h3 className="text-lg font-bold text-white mb-2 group-hover:text-blue-400 transition-colors">
+                  {board.name}
+                </h3>
+                <p className="text-gray-400 text-sm line-clamp-2 mb-4">
+                  {board.description || 'No description'}
+                </p>
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>Created {new Date(board.created_at).toLocaleDateString()}</span>
+                </div>
               </div>
             </div>
           ))}
