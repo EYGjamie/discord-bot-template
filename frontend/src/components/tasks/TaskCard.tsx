@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { FilteredTask } from '../../types/tasks';
 import { Clock, CheckSquare, MessageSquare } from 'lucide-react';
 import { getLabelColorFromBoard } from '../../utils/labelColors';
+import { api } from '../../services/api';
 
 interface TaskCardProps {
   task: FilteredTask;
@@ -12,6 +13,8 @@ interface TaskCardProps {
 }
 
 const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging = false, onClick }) => {
+  const [assigneeInfo, setAssigneeInfo] = useState<{ display_name: string; avatar: string | null } | null>(null);
+
   const {
     attributes,
     listeners,
@@ -20,6 +23,31 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging = false, onClick }
     transition,
     isDragging: isSortableDragging,
   } = useSortable({ id: task.id });
+
+  // Load assignee info when task has an assignee
+  useEffect(() => {
+    if (task.assignee_id) {
+      loadAssigneeInfo(task.assignee_id);
+    } else {
+      setAssigneeInfo(null);
+    }
+  }, [task.assignee_id]);
+
+  const loadAssigneeInfo = async (userId: string) => {
+    try {
+      const data = await api.get(`/api/discord/members/search?q=${userId}`);
+      if (Array.isArray(data) && data.length > 0) {
+        const user = data[0];
+        setAssigneeInfo({
+          display_name: user.display_name,
+          avatar: user.avatar,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load assignee info:', err);
+      setAssigneeInfo(null);
+    }
+  };
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -113,10 +141,18 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging = false, onClick }
 
           {/* Assignee Avatar (if exists) */}
           {task.assignee_id && (
-            <div className="ml-auto">
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
-                {task.assignee_id.substring(0, 2).toUpperCase()}
-              </div>
+            <div className="ml-auto" title={assigneeInfo?.display_name || task.assignee_id}>
+              {assigneeInfo?.avatar ? (
+                <img
+                  src={`https://cdn.discordapp.com/avatars/${task.assignee_id}/${assigneeInfo.avatar}.png?size=32`}
+                  alt={assigneeInfo.display_name}
+                  className="w-6 h-6 rounded-full"
+                />
+              ) : (
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
+                  {assigneeInfo?.display_name ? assigneeInfo.display_name.substring(0, 1).toUpperCase() : task.assignee_id.substring(0, 1).toUpperCase()}
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -91,13 +91,14 @@ func SearchMembers(db *sql.DB) http.HandlerFunc {
 			FROM users 
 			WHERE bot = false AND (
 				LOWER(name) LIKE LOWER($1) OR 
-				LOWER(COALESCE(display_name, '')) LIKE LOWER($1)
+				LOWER(COALESCE(display_name, '')) LIKE LOWER($1) OR
+				id = $2
 			)
 			ORDER BY display_name
 			LIMIT 10
 		`
 
-		rows, err := db.Query(searchQuery, "%"+query+"%")
+		rows, err := db.Query(searchQuery, "%"+query+"%", query)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

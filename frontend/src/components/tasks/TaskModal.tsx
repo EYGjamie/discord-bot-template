@@ -3,6 +3,7 @@ import { X, Lock, Trash2, CheckSquare } from 'lucide-react';
 import type { FilteredTask, Task, TaskStatus, CreateTaskRequest, UpdateTaskRequest, TaskComment, TaskChecklistItem } from '../../types/tasks';
 import { tasksService } from '../../services/tasks';
 import { commentsService, checklistService } from '../../services/taskExtras';
+import { api } from '../../services/api';
 import AssignModal from './AssignModal';
 import LabelModal from './LabelModal';
 import { getLabelColorFromBoard } from '../../utils/labelColors';
@@ -39,14 +40,41 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, boardId, onClose, onUpdate 
   const [commentLoading, setCommentLoading] = useState(false);
   const [checklist, setChecklist] = useState<TaskChecklistItem[]>([]);
   const [newChecklistItem, setNewChecklistItem] = useState('');
+  const [assigneeInfo, setAssigneeInfo] = useState<{ display_name: string; username: string; avatar: string | null } | null>(null);
 
-  // Load comments and checklist when task is loaded
+  // Load comments, checklist, and assignee info when task is loaded
   useEffect(() => {
     if (task?.id) {
       loadComments();
       loadChecklist();
     }
   }, [task?.id]);
+
+  // Load assignee info when assignee_id changes
+  useEffect(() => {
+    if (formData.assignee_id) {
+      loadAssigneeInfo(formData.assignee_id);
+    } else {
+      setAssigneeInfo(null);
+    }
+  }, [formData.assignee_id]);
+
+  const loadAssigneeInfo = async (userId: string) => {
+    try {
+      const data = await api.get(`/api/discord/members/search?q=${userId}`);
+      if (Array.isArray(data) && data.length > 0) {
+        const user = data[0];
+        setAssigneeInfo({
+          display_name: user.display_name,
+          username: user.username,
+          avatar: user.avatar,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load assignee info:', err);
+      setAssigneeInfo(null);
+    }
+  };
 
   const loadComments = async () => {
     if (!task?.id) {
@@ -319,10 +347,29 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, boardId, onClose, onUpdate 
                       <div className="flex items-center gap-2">
                         {formData.assignee_id ? (
                           <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
-                              {formData.assignee_id.substring(0, 2).toUpperCase()}
-                            </div>
-                            <span className="text-gray-300">{formData.assignee_id}</span>
+                            {assigneeInfo ? (
+                              <>
+                                {assigneeInfo.avatar ? (
+                                  <img
+                                    src={`https://cdn.discordapp.com/avatars/${formData.assignee_id}/${assigneeInfo.avatar}.png?size=64`}
+                                    alt={assigneeInfo.display_name}
+                                    className="w-8 h-8 rounded-full"
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
+                                    {assigneeInfo.display_name.substring(0, 2).toUpperCase()}
+                                  </div>
+                                )}
+                                <span className="text-gray-300">{assigneeInfo.display_name}</span>
+                              </>
+                            ) : (
+                              <>
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
+                                  {formData.assignee_id.substring(0, 2).toUpperCase()}
+                                </div>
+                                <span className="text-gray-300">{formData.assignee_id}</span>
+                              </>
+                            )}
                           </div>
                         ) : (
                           <span className="text-gray-500">Nicht zugewiesen</span>
