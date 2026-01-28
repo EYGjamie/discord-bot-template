@@ -11,7 +11,7 @@
     - wordl
 
 Webapp:
-Audit Logs nutzen um "Recent" History auf Profil zu machen / ggf auf dem Dashboard
+Audit Logs nutzen um "Recent" History auf Profil zu machen / ggf auf dem Dashboard - Nur für Admins/Devs Sichtbar
 
 Ideen fürs Dashboard sammeln:
 -
