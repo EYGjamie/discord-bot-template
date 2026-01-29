@@ -289,17 +289,17 @@ func (b *BoardPermissionChecker) GetUserBoardPermission(boardID int, userID stri
 	canCreate = false
 
 	// Check user-specific permission
-	var userCanViewBoard, userCanViewTaskList, userCanViewTasks, userCanEditTasks sql.NullBool
+	var userCanViewBoard, userCanViewTaskList, userCanViewTasks, userCanCreateTasks sql.NullBool
 	err = b.DB.QueryRow(`
-		SELECT can_view_board, can_view_task_list, can_view_tasks, can_edit_tasks 
+		SELECT can_view_board, can_view_task_list, can_view_tasks, can_create_tasks 
 		FROM board_permissions
 		WHERE board_id = $1 AND user_id = $2
-	`, boardID, userID).Scan(&userCanViewBoard, &userCanViewTaskList, &userCanViewTasks, &userCanEditTasks)
+	`, boardID, userID).Scan(&userCanViewBoard, &userCanViewTaskList, &userCanViewTasks, &userCanCreateTasks)
 
 	if err == nil && userCanViewBoard.Bool {
 		// User has explicit permission
 		canView = true
-		canCreate = userCanEditTasks.Bool
+		canCreate = userCanCreateTasks.Bool
 	}
 
 	// Check role-based permissions (even if user permission was found)
@@ -314,7 +314,7 @@ func (b *BoardPermissionChecker) GetUserBoardPermission(boardID int, userID stri
 		}
 
 		query := `
-			SELECT can_view_board, can_edit_tasks 
+			SELECT can_view_board, can_create_tasks 
 			FROM board_permissions
 			WHERE board_id = $1 AND role_id IN (` + strings.Join(placeholders, ",") + `)
 		`

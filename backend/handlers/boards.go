@@ -36,6 +36,7 @@ type BoardPermissionRequest struct {
 	CanViewBoard    bool    `json:"can_view_board"`
 	CanViewTaskList bool    `json:"can_view_task_list"`
 	CanViewTasks    bool    `json:"can_view_tasks"`
+	CanCreateTasks  bool    `json:"can_create_tasks"`
 	CanEditTasks    bool    `json:"can_edit_tasks"`
 	CanEditBoard    bool    `json:"can_edit_board"`
 }
@@ -186,10 +187,10 @@ func (h *BoardsHandler) CreateBoard(w http.ResponseWriter, r *http.Request) {
 
 	// Automatically grant full permissions to the creator (visible on Settings page)
 	permissionQuery := `
-		INSERT INTO board_permissions (board_id, user_id, can_view_board, can_view_task_list, can_view_tasks, can_edit_tasks, can_edit_board, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO board_permissions (board_id, user_id, can_view_board, can_view_task_list, can_view_tasks, can_create_tasks, can_edit_tasks, can_edit_board, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`
-	_, err = h.DB.Exec(permissionQuery, board.ID, userID, true, true, true, true, true, now)
+	_, err = h.DB.Exec(permissionQuery, board.ID, userID, true, true, true, true, true, true, now)
 	if err != nil {
 		// Log error but don't fail the request
 		// The creator will still have permissions via the creator check
@@ -278,7 +279,7 @@ func (h *BoardsHandler) GetBoardPermissions(w http.ResponseWriter, r *http.Reque
 	query := `
 		SELECT 
 			bp.id, bp.board_id, bp.role_id, bp.user_id, 
-			bp.can_view_board, bp.can_view_task_list, bp.can_view_tasks, bp.can_edit_tasks, bp.can_edit_board,
+			bp.can_view_board, bp.can_view_task_list, bp.can_view_tasks, bp.can_create_tasks, bp.can_edit_tasks, bp.can_edit_board,
 			bp.created_at,
 			r.name as role_name,
 			u.name as user_name,
@@ -310,6 +311,7 @@ func (h *BoardsHandler) GetBoardPermissions(w http.ResponseWriter, r *http.Reque
 		CanViewBoard    bool      `json:"can_view_board"`
 		CanViewTaskList bool      `json:"can_view_task_list"`
 		CanViewTasks    bool      `json:"can_view_tasks"`
+		CanCreateTasks  bool      `json:"can_create_tasks"`
 		CanEditTasks    bool      `json:"can_edit_tasks"`
 		CanEditBoard    bool      `json:"can_edit_board"`
 		CreatedAt       time.Time `json:"created_at"`
@@ -319,7 +321,7 @@ func (h *BoardsHandler) GetBoardPermissions(w http.ResponseWriter, r *http.Reque
 	for rows.Next() {
 		var perm PermissionResponse
 		err := rows.Scan(&perm.ID, &perm.BoardID, &perm.RoleID, &perm.UserID,
-			&perm.CanViewBoard, &perm.CanViewTaskList, &perm.CanViewTasks, &perm.CanEditTasks, &perm.CanEditBoard, &perm.CreatedAt,
+			&perm.CanViewBoard, &perm.CanViewTaskList, &perm.CanViewTasks, &perm.CanCreateTasks, &perm.CanEditTasks, &perm.CanEditBoard, &perm.CreatedAt,
 			&perm.RoleName, &perm.UserName, &perm.UserDisplayName, &perm.UserAvatarURL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -371,23 +373,23 @@ func (h *BoardsHandler) SetBoardPermission(w http.ResponseWriter, r *http.Reques
 	case sql.ErrNoRows:
 		// Create new permission
 		query := `
-			INSERT INTO board_permissions (board_id, role_id, user_id, can_view_board, can_view_task_list, can_view_tasks, can_edit_tasks, can_edit_board, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-			RETURNING id, board_id, role_id, user_id, can_view_board, can_view_task_list, can_view_tasks, can_edit_tasks, can_edit_board, created_at
+			INSERT INTO board_permissions (board_id, role_id, user_id, can_view_board, can_view_task_list, can_view_tasks, can_create_tasks, can_edit_tasks, can_edit_board, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+			RETURNING id, board_id, role_id, user_id, can_view_board, can_view_task_list, can_view_tasks, can_create_tasks, can_edit_tasks, can_edit_board, created_at
 		`
-		err = h.DB.QueryRow(query, boardID, req.RoleID, req.UserID, req.CanViewBoard, req.CanViewTaskList, req.CanViewTasks, req.CanEditTasks, req.CanEditBoard, time.Now()).Scan(
-			&perm.ID, &perm.BoardID, &perm.RoleID, &perm.UserID, &perm.CanViewBoard, &perm.CanViewTaskList, &perm.CanViewTasks, &perm.CanEditTasks, &perm.CanEditBoard, &perm.CreatedAt,
+		err = h.DB.QueryRow(query, boardID, req.RoleID, req.UserID, req.CanViewBoard, req.CanViewTaskList, req.CanViewTasks, req.CanCreateTasks, req.CanEditTasks, req.CanEditBoard, time.Now()).Scan(
+			&perm.ID, &perm.BoardID, &perm.RoleID, &perm.UserID, &perm.CanViewBoard, &perm.CanViewTaskList, &perm.CanViewTasks, &perm.CanCreateTasks, &perm.CanEditTasks, &perm.CanEditBoard, &perm.CreatedAt,
 		)
 	case nil:
 		// Update existing permission
 		query := `
 			UPDATE board_permissions
-			SET can_view_board = $1, can_view_task_list = $2, can_view_tasks = $3, can_edit_tasks = $4, can_edit_board = $5
-			WHERE id = $6
-			RETURNING id, board_id, role_id, user_id, can_view_board, can_view_task_list, can_view_tasks, can_edit_tasks, can_edit_board, created_at
+			SET can_view_board = $1, can_view_task_list = $2, can_view_tasks = $3, can_create_tasks = $4, can_edit_tasks = $5, can_edit_board = $6
+			WHERE id = $7
+			RETURNING id, board_id, role_id, user_id, can_view_board, can_view_task_list, can_view_tasks, can_create_tasks, can_edit_tasks, can_edit_board, created_at
 		`
-		err = h.DB.QueryRow(query, req.CanViewBoard, req.CanViewTaskList, req.CanViewTasks, req.CanEditTasks, req.CanEditBoard, existingID).Scan(
-			&perm.ID, &perm.BoardID, &perm.RoleID, &perm.UserID, &perm.CanViewBoard, &perm.CanViewTaskList, &perm.CanViewTasks, &perm.CanEditTasks, &perm.CanEditBoard, &perm.CreatedAt,
+		err = h.DB.QueryRow(query, req.CanViewBoard, req.CanViewTaskList, req.CanViewTasks, req.CanCreateTasks, req.CanEditTasks, req.CanEditBoard, existingID).Scan(
+			&perm.ID, &perm.BoardID, &perm.RoleID, &perm.UserID, &perm.CanViewBoard, &perm.CanViewTaskList, &perm.CanViewTasks, &perm.CanCreateTasks, &perm.CanEditTasks, &perm.CanEditBoard, &perm.CreatedAt,
 		)
 	}
 
@@ -440,13 +442,13 @@ func (h *BoardsHandler) UpdateBoardPermission(w http.ResponseWriter, r *http.Req
 
 	query := `
 		UPDATE board_permissions
-		SET can_view_board = $1, can_view_task_list = $2, can_view_tasks = $3, can_edit_tasks = $4, can_edit_board = $5
-		WHERE id = $6
+		SET can_view_board = $1, can_view_task_list = $2, can_view_tasks = $3, can_create_tasks = $4, can_edit_tasks = $5, can_edit_board = $6
+		WHERE id = $7
 		RETURNING id
 	`
 
 	var id int
-	err = h.DB.QueryRow(query, req.CanViewBoard, req.CanViewTaskList, req.CanViewTasks, req.CanEditTasks, req.CanEditBoard, permissionID).Scan(&id)
+	err = h.DB.QueryRow(query, req.CanViewBoard, req.CanViewTaskList, req.CanViewTasks, req.CanCreateTasks, req.CanEditTasks, req.CanEditBoard, permissionID).Scan(&id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "Permission not found", http.StatusNotFound)

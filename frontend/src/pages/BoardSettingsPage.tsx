@@ -112,6 +112,7 @@ const BoardSettingsPage: React.FC = () => {
     const canViewBoard = formData.get('can_view_board') === 'on';
     const canViewTaskList = formData.get('can_view_task_list') === 'on';
     const canViewTasks = formData.get('can_view_tasks') === 'on';
+    const canCreateTasks = formData.get('can_create_tasks') === 'on';
     const canEditTasks = formData.get('can_edit_tasks') === 'on';
     const canEditBoard = formData.get('can_edit_board') === 'on';
 
@@ -127,6 +128,7 @@ const BoardSettingsPage: React.FC = () => {
         can_view_board: canViewBoard,
         can_view_task_list: canViewTaskList,
         can_view_tasks: canViewTasks,
+        can_create_tasks: canCreateTasks,
         can_edit_tasks: canEditTasks,
         can_edit_board: canEditBoard,
       });
@@ -152,6 +154,7 @@ const BoardSettingsPage: React.FC = () => {
     const canViewBoard = formData.get('can_view_board') === 'on';
     const canViewTaskList = formData.get('can_view_task_list') === 'on';
     const canViewTasks = formData.get('can_view_tasks') === 'on';
+    const canCreateTasks = formData.get('can_create_tasks') === 'on';
     const canEditTasks = formData.get('can_edit_tasks') === 'on';
     const canEditBoard = formData.get('can_edit_board') === 'on';
 
@@ -160,6 +163,7 @@ const BoardSettingsPage: React.FC = () => {
         can_view_board: canViewBoard,
         can_view_task_list: canViewTaskList,
         can_view_tasks: canViewTasks,
+        can_create_tasks: canCreateTasks,
         can_edit_tasks: canEditTasks,
         can_edit_board: canEditBoard,
       });
@@ -469,6 +473,11 @@ const BoardSettingsPage: React.FC = () => {
                       View Tasks
                     </span>
                   )}
+                  {permission.can_create_tasks && (
+                    <span className="px-2 py-1 bg-cyan-500/20 text-cyan-400 rounded text-xs font-semibold">
+                      Create Tasks
+                    </span>
+                  )}
                   {permission.can_edit_tasks && (
                     <span className="px-2 py-1 bg-orange-500/20 text-orange-400 rounded text-xs font-semibold">
                       Edit Tasks
@@ -675,6 +684,14 @@ const BoardSettingsPage: React.FC = () => {
                   <label className="flex items-center gap-2 text-white cursor-pointer">
                     <input
                       type="checkbox"
+                      name="can_create_tasks"
+                      className="w-4 h-4 rounded bg-white/5 border-white/10"
+                    />
+                    <span>Can Create Tasks</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-white cursor-pointer">
+                    <input
+                      type="checkbox"
                       name="can_edit_tasks"
                       className="w-4 h-4 rounded bg-white/5 border-white/10"
                     />
@@ -761,6 +778,15 @@ const BoardSettingsPage: React.FC = () => {
                       className="w-4 h-4 rounded bg-white/5 border-white/10"
                     />
                     <span>Can View Full Tasks</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-white cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="can_create_tasks"
+                      defaultChecked={editingPermission.can_create_tasks}
+                      className="w-4 h-4 rounded bg-white/5 border-white/10"
+                    />
+                    <span>Can Create Tasks</span>
                   </label>
                   <label className="flex items-center gap-2 text-white cursor-pointer">
                     <input

@@ -79,6 +79,7 @@ type UserBoardPermission struct {
 	CanViewBoard    bool
 	CanViewTaskList bool
 	CanViewTasks    bool
+	CanCreateTasks  bool
 	CanEditTasks    bool
 	CanEditBoard    bool
 }
@@ -96,6 +97,7 @@ func (h *TasksHandler) getUserBoardPermission(boardID int, userID string, userRo
 			CanViewBoard:    true,
 			CanViewTaskList: true,
 			CanViewTasks:    true,
+			CanCreateTasks:  true,
 			CanEditTasks:    true,
 			CanEditBoard:    true,
 		}
@@ -114,6 +116,7 @@ func (h *TasksHandler) getUserBoardPermission(boardID int, userID string, userRo
 					CanViewBoard:    true,
 					CanViewTaskList: true,
 					CanViewTasks:    true,
+					CanCreateTasks:  true,
 					CanEditTasks:    true,
 					CanEditBoard:    true,
 				}
@@ -130,18 +133,19 @@ func (h *TasksHandler) getUserBoardPermission(boardID int, userID string, userRo
 			CanViewBoard:    true,
 			CanViewTaskList: true,
 			CanViewTasks:    true,
+			CanCreateTasks:  true,
 			CanEditTasks:    true,
 			CanEditBoard:    false,
 		}
 	}
 
 	// Check user-specific permission
-	var canViewBoard, canViewTaskList, canViewTasks, canEditTasks, canEditBoard sql.NullBool
+	var canViewBoard, canViewTaskList, canViewTasks, canCreateTasks, canEditTasks, canEditBoard sql.NullBool
 	err = h.DB.QueryRow(`
-		SELECT can_view_board, can_view_task_list, can_view_tasks, can_edit_tasks, can_edit_board
+		SELECT can_view_board, can_view_task_list, can_view_tasks, can_create_tasks, can_edit_tasks, can_edit_board
 		FROM board_permissions
 		WHERE board_id = $1 AND user_id = $2
-	`, boardID, userID).Scan(&canViewBoard, &canViewTaskList, &canViewTasks, &canEditTasks, &canEditBoard)
+	`, boardID, userID).Scan(&canViewBoard, &canViewTaskList, &canViewTasks, &canCreateTasks, &canEditTasks, &canEditBoard)
 
 	if err == nil {
 		if canViewBoard.Valid && canViewBoard.Bool {
@@ -152,6 +156,9 @@ func (h *TasksHandler) getUserBoardPermission(boardID int, userID string, userRo
 		}
 		if canViewTasks.Valid && canViewTasks.Bool {
 			perm.CanViewTasks = true
+		}
+		if canCreateTasks.Valid && canCreateTasks.Bool {
+			perm.CanCreateTasks = true
 		}
 		if canEditTasks.Valid && canEditTasks.Bool {
 			perm.CanEditTasks = true
@@ -173,7 +180,7 @@ func (h *TasksHandler) getUserBoardPermission(boardID int, userID string, userRo
 		}
 
 		query := `
-			SELECT can_view_board, can_view_task_list, can_view_tasks, can_edit_tasks, can_edit_board
+			SELECT can_view_board, can_view_task_list, can_view_tasks, can_create_tasks, can_edit_tasks, can_edit_board
 			FROM board_permissions
 			WHERE board_id = $1 AND role_id IN (` + strings.Join(placeholders, ",") + `)
 		`
@@ -182,8 +189,8 @@ func (h *TasksHandler) getUserBoardPermission(boardID int, userID string, userRo
 		if err == nil {
 			defer rows.Close()
 			for rows.Next() {
-				var cvb, cvtl, cvt, cet, ceb sql.NullBool
-				if err := rows.Scan(&cvb, &cvtl, &cvt, &cet, &ceb); err == nil {
+				var cvb, cvtl, cvt, cct, cet, ceb sql.NullBool
+				if err := rows.Scan(&cvb, &cvtl, &cvt, &cct, &cet, &ceb); err == nil {
 					if cvb.Valid && cvb.Bool {
 						perm.CanViewBoard = true
 					}
@@ -192,6 +199,9 @@ func (h *TasksHandler) getUserBoardPermission(boardID int, userID string, userRo
 					}
 					if cvt.Valid && cvt.Bool {
 						perm.CanViewTasks = true
+					}
+					if cct.Valid && cct.Bool {
+						perm.CanCreateTasks = true
 					}
 					if cet.Valid && cet.Bool {
 						perm.CanEditTasks = true

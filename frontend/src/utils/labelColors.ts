@@ -20,28 +20,41 @@ export const LABEL_COLORS: LabelColor[] = [
   { value: 'rose', bg: 'bg-rose-600', text: 'text-white', name: 'Rose' },
 ];
 
-export interface BoardLabel {
+// Local cache for board labels
+interface CachedBoardLabel {
   name: string;
   color: string;
 }
 
+const labelCache: Map<number, CachedBoardLabel[]> = new Map();
+
+// Set labels in cache (call this when loading board data)
+export const setBoardLabelsCache = (boardId: number, labels: CachedBoardLabel[]) => {
+  labelCache.set(boardId, labels);
+};
+
+// Clear labels from cache
+export const clearBoardLabelsCache = (boardId?: number) => {
+  if (boardId !== undefined) {
+    labelCache.delete(boardId);
+  } else {
+    labelCache.clear();
+  }
+};
+
+// Get label color from cache (synchronous for rendering)
 export const getLabelColorFromBoard = (boardId: number, labelName: string): LabelColor => {
   if (!boardId || !labelName) {
     return LABEL_COLORS[5]; // Default to blue
   }
   
-  try {
-    const storedLabels = localStorage.getItem(`board_${boardId}_labels`);
-    if (storedLabels) {
-      const parsed: BoardLabel[] = JSON.parse(storedLabels);
-      const label = parsed.find((l: BoardLabel) => l.name === labelName);
-      if (label) {
-        const color = LABEL_COLORS.find(c => c.value === label.color);
-        if (color) return color;
-      }
+  const cachedLabels = labelCache.get(boardId);
+  if (cachedLabels) {
+    const label = cachedLabels.find(l => l.name === labelName);
+    if (label) {
+      const color = LABEL_COLORS.find(c => c.value === label.color);
+      if (color) return color;
     }
-  } catch (e) {
-    console.error('Failed to parse labels:', e);
   }
   
   // Default to blue if not found

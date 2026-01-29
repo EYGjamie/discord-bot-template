@@ -27,9 +27,19 @@ type BoardPermission struct {
 	CanViewBoard    bool      `json:"can_view_board" db:"can_view_board"`         // Can see the board exists
 	CanViewTaskList bool      `json:"can_view_task_list" db:"can_view_task_list"` // Can see task titles in list
 	CanViewTasks    bool      `json:"can_view_tasks" db:"can_view_tasks"`         // Can view full task details
-	CanEditTasks    bool      `json:"can_edit_tasks" db:"can_edit_tasks"`         // Can create/edit/move tasks
+	CanCreateTasks  bool      `json:"can_create_tasks" db:"can_create_tasks"`     // Can create new tasks
+	CanEditTasks    bool      `json:"can_edit_tasks" db:"can_edit_tasks"`         // Can edit/move existing tasks
 	CanEditBoard    bool      `json:"can_edit_board" db:"can_edit_board"`         // Can edit/delete the board itself
 	CreatedAt       time.Time `json:"created_at" db:"created_at"`
+}
+
+// BoardLabel represents a label that can be applied to tasks on a board
+type BoardLabel struct {
+	ID        int       `json:"id" db:"id"`
+	BoardID   int       `json:"board_id" db:"board_id"`
+	Name      string    `json:"name" db:"name"`
+	Color     string    `json:"color" db:"color"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
 }
 
 // CreateBoardsTable creates the boards and board_permissions tables
@@ -57,6 +67,7 @@ func CreateBoardsTable(db *sql.DB) error {
 		can_view_board BOOLEAN DEFAULT false,
 		can_view_task_list BOOLEAN DEFAULT false,
 		can_view_tasks BOOLEAN DEFAULT false,
+		can_create_tasks BOOLEAN DEFAULT false,
 		can_edit_tasks BOOLEAN DEFAULT false,
 		can_edit_board BOOLEAN DEFAULT false,
 		created_at TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -69,6 +80,17 @@ func CreateBoardsTable(db *sql.DB) error {
 	CREATE INDEX IF NOT EXISTS idx_board_permissions_board_id ON board_permissions(board_id);
 	CREATE INDEX IF NOT EXISTS idx_board_permissions_role_id ON board_permissions(role_id);
 	CREATE INDEX IF NOT EXISTS idx_board_permissions_user_id ON board_permissions(user_id);
+
+	CREATE TABLE IF NOT EXISTS board_labels (
+		id SERIAL PRIMARY KEY,
+		board_id INTEGER NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
+		name VARCHAR(50) NOT NULL,
+		color VARCHAR(20) DEFAULT 'blue',
+		created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+		CONSTRAINT unique_board_label UNIQUE (board_id, name)
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_board_labels_board_id ON board_labels(board_id);
 	`
 
 	_, err := db.Exec(query)

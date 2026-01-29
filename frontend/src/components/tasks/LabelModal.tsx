@@ -1,49 +1,51 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Tag, Palette } from 'lucide-react';
-import { LABEL_COLORS, type BoardLabel } from '../../utils/labelColors';
+import { X, Plus, Tag, Palette, Loader2 } from 'lucide-react';
+import { LABEL_COLORS, setBoardLabelsCache } from '../../utils/labelColors';
+import type { BoardLabel } from '../../types/tasks';
+import { boardsService } from '../../services/tasks';
 
 interface LabelModalProps {
   boardId: number;
   currentLabels: string[];
   onClose: () => void;
   onSave: (labels: string[]) => void;
+  onLabelsChange?: () => void; // Called when board labels are created/updated/deleted
 }
 
-const LabelModal: React.FC<LabelModalProps> = ({ boardId, currentLabels, onClose, onSave }) => {
+const LabelModal: React.FC<LabelModalProps> = ({ boardId, currentLabels, onClose, onSave, onLabelsChange }) => {
   const [selectedLabels, setSelectedLabels] = useState<string[]>(currentLabels);
   const [newLabelName, setNewLabelName] = useState('');
   const [newLabelColor, setNewLabelColor] = useState('blue');
   const [boardLabels, setBoardLabels] = useState<BoardLabel[]>([]);
-  const [editingLabel, setEditingLabel] = useState<string | null>(null);
+  const [editingLabel, setEditingLabel] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load board labels from localStorage
+  // Update label cache whenever boardLabels change
   useEffect(() => {
-    const storedLabels = localStorage.getItem(`board_${boardId}_labels`);
-    if (storedLabels) {
-      try {
-        const parsed = JSON.parse(storedLabels);
-        // Handle old format (array of strings) and new format (array of objects)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          if (typeof parsed[0] === 'string') {
-            // Old format - convert to new format
-            const converted = parsed.map((name: string) => ({ name, color: 'blue' }));
-            setBoardLabels(converted);
-            saveBoardLabels(converted);
-          } else {
-            setBoardLabels(parsed);
-          }
-        }
-      } catch (e) {
-        console.error('Failed to parse labels:', e);
-      }
+    if (boardLabels.length > 0) {
+      setBoardLabelsCache(boardId, boardLabels.map(l => ({ name: l.name, color: l.color })));
     }
-  }, [boardId]);
+  }, [boardLabels, boardId]);
 
-  // Save board labels to localStorage
-  const saveBoardLabels = (labels: BoardLabel[]) => {
-    localStorage.setItem(`board_${boardId}_labels`, JSON.stringify(labels));
-    setBoardLabels(labels);
-  };
+  // Load board labels from API
+  useEffect(() => {
+    const loadLabels = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const labels = await boardsService.getLabels(boardId);
+        setBoardLabels(labels);
+      } catch (e) {
+        console.error('Failed to load labels:', e);
+        setError('Labels konnten nicht geladen werden');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadLabels();
+  }, [boardId]);
 
   const toggleLabel = (labelName: string) => {
     if (selectedLabels.includes(labelName)) {
@@ -53,30 +55,60 @@ const LabelModal: React.FC<LabelModalProps> = ({ boardId, currentLabels, onClose
     }
   };
 
-  const addNewLabel = () => {
-    if (newLabelName.trim() && !boardLabels.find(l => l.name === newLabelName.trim())) {
-      const newLabel: BoardLabel = { name: newLabelName.trim(), color: newLabelColor };
-      const updatedLabels = [...boardLabels, newLabel];
-      saveBoardLabels(updatedLabels);
-      setSelectedLabels([...selectedLabels, newLabelName.trim()]);
+  const addNewLabel = async () => {
+    if (!newLabelName.trim() || boardLabels.find(l => l.name === newLabelName.trim())) {
+      return;
+    }
+    
+    setIsSaving(true);
+    try {
+      const newLabel = await boardsService.createLabel(boardId, { name: newLabelName.trim(), color: newLabelColor });
+      setBoardLabels([...boardLabels, newLabel]);
+      setSelectedLabels([...selectedLabels, newLabel.name]);
       setNewLabelName('');
       setNewLabelColor('blue');
+      onLabelsChange?.();
+    } catch (e) {
+      console.error('Failed to create label:', e);
+      setError('Label konnte nicht erstellt werden');
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const updateLabelColor = (labelName: string, newColor: string) => {
-    const updatedLabels = boardLabels.map(l => 
-      l.name === labelName ? { ...l, color: newColor } : l
-    );
-    saveBoardLabels(updatedLabels);
-    setEditingLabel(null);
+  const updateLabelColor = async (labelId: number, labelName: string, newColor: string) => {
+    setIsSaving(true);
+    try {
+      await boardsService.updateLabel(boardId, labelId, { name: labelName, color: newColor });
+      setBoardLabels(boardLabels.map(l => 
+        l.id === labelId ? { ...l, color: newColor } : l
+      ));
+      setEditingLabel(null);
+      onLabelsChange?.();
+    } catch (e) {
+      console.error('Failed to update label:', e);
+      setError('Label konnte nicht aktualisiert werden');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const deleteLabel = (labelName: string) => {
-    if (confirm(`Label "${labelName}" vom Board entfernen?`)) {
-      const updatedLabels = boardLabels.filter(l => l.name !== labelName);
-      saveBoardLabels(updatedLabels);
-      setSelectedLabels(selectedLabels.filter(l => l !== labelName));
+  const deleteLabel = async (label: BoardLabel) => {
+    if (!confirm(`Label "${label.name}" vom Board entfernen? Das Label wird auch von allen Tasks entfernt.`)) {
+      return;
+    }
+    
+    setIsSaving(true);
+    try {
+      await boardsService.deleteLabel(boardId, label.id);
+      setBoardLabels(boardLabels.filter(l => l.id !== label.id));
+      setSelectedLabels(selectedLabels.filter(l => l !== label.name));
+      onLabelsChange?.();
+    } catch (e) {
+      console.error('Failed to delete label:', e);
+      setError('Label konnte nicht gelöscht werden');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -139,10 +171,10 @@ const LabelModal: React.FC<LabelModalProps> = ({ boardId, currentLabels, onClose
                 </div>
                 <button
                   onClick={addNewLabel}
-                  disabled={!newLabelName.trim()}
+                  disabled={!newLabelName.trim() || isSaving}
                   className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                 >
-                  <Plus size={14} />
+                  {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
                   Hinzufügen
                 </button>
               </div>
@@ -154,67 +186,77 @@ const LabelModal: React.FC<LabelModalProps> = ({ boardId, currentLabels, onClose
             <label className="text-sm font-medium text-gray-400 mb-2 block">
               Verfügbare Labels ({boardLabels.length})
             </label>
-            <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
-              {boardLabels.length === 0 ? (
-                <p className="text-sm text-gray-500 italic text-center py-4">
-                  Noch keine Labels vorhanden. Erstelle dein erstes Label oben!
-                </p>
-              ) : (
-                boardLabels.map((label) => {
-                  const color = getLabelColor(label.name);
-                  const isSelected = selectedLabels.includes(label.name);
-                  const isEditing = editingLabel === label.name;
-                  return (
-                    <div
-                      key={label.name}
-                      className="flex items-center gap-2 bg-[#0d0f15] border border-white/10 rounded-lg p-2 hover:bg-white/5 transition-colors"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleLabel(label.name)}
-                        className="w-4 h-4 rounded border-white/20 bg-[#0d0f15] text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
-                      />
-                      <span className={`flex-1 px-3 py-1 rounded ${color.bg} ${color.text} text-sm font-medium`}>
-                        {label.name}
-                      </span>
-                      {isEditing ? (
-                        <div className="grid grid-cols-6 gap-1">
-                          {LABEL_COLORS.map((c) => (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 size={24} className="animate-spin text-blue-400" />
+              </div>
+            ) : error ? (
+              <p className="text-sm text-red-400 text-center py-4">{error}</p>
+            ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
+                {boardLabels.length === 0 ? (
+                  <p className="text-sm text-gray-500 italic text-center py-4">
+                    Noch keine Labels vorhanden. Erstelle dein erstes Label oben!
+                  </p>
+                ) : (
+                  boardLabels.map((label) => {
+                    const color = getLabelColor(label.name);
+                    const isSelected = selectedLabels.includes(label.name);
+                    const isEditing = editingLabel === label.id;
+                    return (
+                      <div
+                        key={label.id}
+                        className="flex items-center gap-2 bg-[#0d0f15] border border-white/10 rounded-lg p-2 hover:bg-white/5 transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleLabel(label.name)}
+                          className="w-4 h-4 rounded border-white/20 bg-[#0d0f15] text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                        />
+                        <span className={`flex-1 px-3 py-1 rounded ${color.bg} ${color.text} text-sm font-medium`}>
+                          {label.name}
+                        </span>
+                        {isEditing ? (
+                          <div className="grid grid-cols-6 gap-1">
+                            {LABEL_COLORS.map((c) => (
+                              <button
+                                key={c.value}
+                                type="button"
+                                onClick={() => updateLabelColor(label.id, label.name, c.value)}
+                                disabled={isSaving}
+                                className={`w-6 h-6 rounded ${c.bg} border ${
+                                  label.color === c.value ? 'border-white' : 'border-transparent'
+                                } hover:opacity-80 disabled:opacity-50`}
+                                title={c.name}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <>
                             <button
-                              key={c.value}
-                              type="button"
-                              onClick={() => updateLabelColor(label.name, c.value)}
-                              className={`w-6 h-6 rounded ${c.bg} border ${
-                                label.color === c.value ? 'border-white' : 'border-transparent'
-                              } hover:opacity-80`}
-                              title={c.name}
-                            />
-                          ))}
-                        </div>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => setEditingLabel(label.name)}
-                            className="text-gray-400 hover:text-blue-400 p-1"
-                            title="Farbe ändern"
-                          >
-                            <Palette size={16} />
-                          </button>
-                          <button
-                            onClick={() => deleteLabel(label.name)}
-                            className="text-gray-500 hover:text-red-500 text-lg px-2"
-                            title="Label löschen"
-                          >
-                            ×
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
+                              onClick={() => setEditingLabel(label.id)}
+                              className="text-gray-400 hover:text-blue-400 p-1"
+                              title="Farbe ändern"
+                            >
+                              <Palette size={16} />
+                            </button>
+                            <button
+                              onClick={() => deleteLabel(label)}
+                              disabled={isSaving}
+                              className="text-gray-500 hover:text-red-500 text-lg px-2 disabled:opacity-50"
+                              title="Label löschen"
+                            >
+                              ×
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
           </div>
 
           {/* Selected Labels Preview */}

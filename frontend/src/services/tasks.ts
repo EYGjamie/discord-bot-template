@@ -1,6 +1,7 @@
 import type {
   Board,
   BoardPermission,
+  BoardLabel,
   Task,
   TaskGroup,
   TaskGroupPermission,
@@ -61,6 +62,23 @@ export const boardsService = {
 
   deletePermission: async (boardId: number, permissionId: number): Promise<void> => {
     await api.delete(`/api/boards/${boardId}/permissions/${permissionId}`);
+  },
+
+  // Board labels
+  getLabels: async (boardId: number): Promise<BoardLabel[]> => {
+    return await api.get(`/api/boards/${boardId}/labels`);
+  },
+
+  createLabel: async (boardId: number, data: { name: string; color: string }): Promise<BoardLabel> => {
+    return await api.post(`/api/boards/${boardId}/labels`, data);
+  },
+
+  updateLabel: async (boardId: number, labelId: number, data: { name: string; color: string }): Promise<BoardLabel> => {
+    return await api.put(`/api/boards/${boardId}/labels/${labelId}`, data);
+  },
+
+  deleteLabel: async (boardId: number, labelId: number): Promise<void> => {
+    await api.delete(`/api/boards/${boardId}/labels/${labelId}`);
   },
 };
 

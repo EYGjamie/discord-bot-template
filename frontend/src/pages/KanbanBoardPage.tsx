@@ -3,12 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 import { boardsService, tasksService } from '../services/tasks';
-import type { Board, FilteredTask, KanbanColumn, TaskStatus } from '../types/tasks';
+import type { Board, FilteredTask, KanbanColumn, TaskStatus, BoardLabel } from '../types/tasks';
 import KanbanColumnComponent from '../components/tasks/KanbanColumn';
 import TaskCard from '../components/tasks/TaskCard';
 import TaskModal from '../components/tasks/TaskModal';
 import { ArrowLeft, Plus, Settings } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { setBoardLabelsCache, clearBoardLabelsCache } from '../utils/labelColors';
 
 const KanbanBoardPage: React.FC = () => {
   const { boardId } = useParams<{ boardId: string }>();
@@ -17,8 +18,10 @@ const KanbanBoardPage: React.FC = () => {
   const [board, setBoard] = useState<Board | null>(null);
   const [tasks, setTasks] = useState<FilteredTask[]>([]);
   const [columns, setColumns] = useState<KanbanColumn[]>([]);
+  const [boardLabels, setBoardLabels] = useState<BoardLabel[]>([]);
   const [loading, setLoading] = useState(true);
   const [canEditBoard, setCanEditBoard] = useState(false);
+  const [canCreateTasks, setCanCreateTasks] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTask, setActiveTask] = useState<FilteredTask | null>(null);
   const [selectedTask, setSelectedTask] = useState<FilteredTask | null>(null);
@@ -44,7 +47,15 @@ const KanbanBoardPage: React.FC = () => {
     if (boardId) {
       loadBoard();
       loadTasks();
+      loadLabels();
     }
+    
+    // Cleanup labels cache on unmount
+    return () => {
+      if (boardId) {
+        clearBoardLabelsCache(Number(boardId));
+      }
+    };
   }, [boardId]);
 
   useEffect(() => {
@@ -66,39 +77,62 @@ const KanbanBoardPage: React.FC = () => {
     }
   };
 
+  const loadLabels = async () => {
+    try {
+      const labels = await boardsService.getLabels(Number(boardId));
+      setBoardLabels(labels);
+      // Update cache for getLabelColorFromBoard function
+      setBoardLabelsCache(Number(boardId), labels.map(l => ({ name: l.name, color: l.color })));
+    } catch (err) {
+      console.error('Failed to load labels:', err);
+    }
+  };
+
   const checkBoardEditPermission = async () => {
     if (!user?.discord_id) return;
     
     try {
       const permissions = await boardsService.getPermissions(Number(boardId));
       
-      // Check if user has explicit can_edit_board permission
-      const userPermission = permissions.find(
-        (p) => p.user_id === user.discord_id && p.can_edit_board
-      );
-      
-      if (userPermission) {
+      // If no permissions set, everyone has full access
+      if (permissions.length === 0) {
         setCanEditBoard(true);
+        setCanCreateTasks(true);
         return;
       }
       
-      // Check if any of user's roles have can_edit_board permission
+      let hasEditBoard = false;
+      let hasCreateTasks = false;
+      
+      // Check if user has explicit permissions
+      const userPermission = permissions.find(
+        (p) => p.user_id === user.discord_id
+      );
+      
+      if (userPermission) {
+        if (userPermission.can_edit_board) hasEditBoard = true;
+        if (userPermission.can_create_tasks) hasCreateTasks = true;
+      }
+      
+      // Check if any of user's roles have permissions
       if (user.roles && user.roles.length > 0) {
         const roleIds = user.roles.map(r => r.id);
-        const rolePermission = permissions.find(
-          (p) => p.role_id && roleIds.includes(p.role_id) && p.can_edit_board
+        const rolePermissions = permissions.filter(
+          (p) => p.role_id && roleIds.includes(p.role_id)
         );
         
-        if (rolePermission) {
-          setCanEditBoard(true);
-          return;
+        for (const rolePerm of rolePermissions) {
+          if (rolePerm.can_edit_board) hasEditBoard = true;
+          if (rolePerm.can_create_tasks) hasCreateTasks = true;
         }
       }
       
-      setCanEditBoard(false);
+      setCanEditBoard(hasEditBoard);
+      setCanCreateTasks(hasCreateTasks);
     } catch (err) {
-      console.error('Failed to check board edit permission:', err);
+      console.error('Failed to check board permissions:', err);
       setCanEditBoard(false);
+      setCanCreateTasks(false);
     }
   };
 
@@ -239,13 +273,15 @@ const KanbanBoardPage: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleCreateTask}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-            >
-              <Plus size={20} />
-              New Task
-            </button>
+            {(user?.is_admin || board?.created_by === user?.discord_id || canCreateTasks) && (
+              <button
+                onClick={handleCreateTask}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
+                <Plus size={20} />
+                New Task
+              </button>
+            )}
             {(user?.is_admin || board?.created_by === user?.discord_id || canEditBoard) && (
               <button
                 onClick={() => navigate(`/tasks/boards/${boardId}/settings`)}
@@ -291,6 +327,7 @@ const KanbanBoardPage: React.FC = () => {
           task={selectedTask}
           onClose={() => setShowTaskModal(false)}
           onUpdate={handleTaskUpdated}
+          onLabelsChange={loadLabels}
         />
       )}
 
@@ -300,6 +337,7 @@ const KanbanBoardPage: React.FC = () => {
           boardId={Number(boardId)}
           onClose={() => setShowCreateModal(false)}
           onUpdate={handleTaskUpdated}
+          onLabelsChange={loadLabels}
         />
       )}
     </div>

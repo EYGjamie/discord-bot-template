@@ -13,9 +13,10 @@ interface TaskModalProps {
   boardId?: number;
   onClose: () => void;
   onUpdate: () => void;
+  onLabelsChange?: () => void;
 }
 
-const TaskModal: React.FC<TaskModalProps> = ({ task, boardId, onClose, onUpdate }) => {
+const TaskModal: React.FC<TaskModalProps> = ({ task, boardId, onClose, onUpdate, onLabelsChange }) => {
   const isEditMode = !!task;
   const canReadContent = !task || (task.permission && ['read_content', 'edit', 'delete'].includes(task.permission));
   const canEdit = !task || (task.permission && ['edit', 'delete'].includes(task.permission));
@@ -711,6 +712,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, boardId, onClose, onUpdate 
           currentLabels={formData.tags || []}
           onClose={() => setShowLabelModal(false)}
           onSave={handleLabelsUpdate}
+          onLabelsChange={onLabelsChange}
         />
       )}
     </div>

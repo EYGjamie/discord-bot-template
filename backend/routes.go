@@ -302,6 +302,37 @@ func (s *Server) RegisterRoutes() http.Handler {
 		),
 	)
 
+	// Board labels routes (protected - any authenticated user can view, admin can modify)
+	boardLabelsHandler := &handlers.BoardLabelsHandler{DB: s.db.DB()}
+	mux.HandleFunc("GET /api/boards/{id}/labels",
+		requireAuthWithDB(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				boardPermChecker.RequireBoardView()(http.HandlerFunc(boardLabelsHandler.GetBoardLabels)).ServeHTTP(w, r)
+			}),
+		),
+	)
+	mux.HandleFunc("POST /api/boards/{id}/labels",
+		requireAuthWithDB(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				boardPermChecker.RequireBoardView()(http.HandlerFunc(boardLabelsHandler.CreateBoardLabel)).ServeHTTP(w, r)
+			}),
+		),
+	)
+	mux.HandleFunc("PUT /api/boards/{id}/labels/{labelId}",
+		requireAuthWithDB(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				boardPermChecker.RequireBoardView()(http.HandlerFunc(boardLabelsHandler.UpdateBoardLabel)).ServeHTTP(w, r)
+			}),
+		),
+	)
+	mux.HandleFunc("DELETE /api/boards/{id}/labels/{labelId}",
+		requireAuthWithDB(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				boardPermChecker.RequireBoardView()(http.HandlerFunc(boardLabelsHandler.DeleteBoardLabel)).ServeHTTP(w, r)
+			}),
+		),
+	)
+
 	// Task routes (protected with granular permissions)
 	mux.HandleFunc("GET /api/boards/{boardId}/tasks",
 		requireAuthWithDB(
