@@ -75,8 +75,9 @@ export default function EventModal({ event, defaultDate, onClose, onSave, catego
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Guests
+  // Guests - for existing events: from DB, for new events: pending members to invite
   const [guests, setGuests] = useState<EventGuest[]>([]);
+  const [pendingGuestMembers, setPendingGuestMembers] = useState<Member[]>([]); // For new events
   const [guestSearchQuery, setGuestSearchQuery] = useState('');
   const [guestSearchResults, setGuestSearchResults] = useState<Member[]>([]);
   const [searchingGuests, setSearchingGuests] = useState(false);
@@ -88,8 +89,9 @@ export default function EventModal({ event, defaultDate, onClose, onSave, catego
   const [newLabelName, setNewLabelName] = useState('');
   const [newLabelColor, setNewLabelColor] = useState('blue');
   
-  // Checklist
+  // Checklist - for existing events: from DB, for new events: pending items
   const [checklist, setChecklist] = useState<EventChecklistItem[]>([]);
+  const [pendingChecklistItems, setPendingChecklistItems] = useState<string[]>([]); // For new events
   const [newChecklistItem, setNewChecklistItem] = useState('');
 
   // Load data when editing
@@ -140,9 +142,10 @@ export default function EventModal({ event, defaultDate, onClose, onSave, catego
     try {
       const response = await api.members.getMembers({ search: query, per_page: 10 });
       const members = response.members || [];
-      // Filter out already invited guests
+      // Filter out already invited guests (both saved and pending)
       const guestIds = guests.map(g => g.user_id);
-      setGuestSearchResults(members.filter((m: Member) => !guestIds.includes(m.id)));
+      const pendingIds = pendingGuestMembers.map(m => m.id);
+      setGuestSearchResults(members.filter((m: Member) => !guestIds.includes(m.id) && !pendingIds.includes(m.id)));
     } catch (err) {
       console.error('Failed to search users:', err);
     } finally {
@@ -160,16 +163,21 @@ export default function EventModal({ event, defaultDate, onClose, onSave, catego
   }, [guestSearchQuery]);
 
   const inviteGuest = async (member: Member) => {
-    if (!event?.id) return;
-    try {
-      const newGuest = await api.events.inviteGuest(event.id, member.id);
-      setGuests([...guests, newGuest]);
-      setGuestSearchQuery('');
-      setGuestSearchResults([]);
-      setShowGuestSearch(false);
-    } catch (err) {
-      console.error('Failed to invite guest:', err);
+    if (event?.id) {
+      // Existing event - save to DB immediately
+      try {
+        const newGuest = await api.events.inviteGuest(event.id, member.id);
+        setGuests([...guests, newGuest]);
+      } catch (err) {
+        console.error('Failed to invite guest:', err);
+      }
+    } else {
+      // New event - add to pending list
+      setPendingGuestMembers([...pendingGuestMembers, member]);
     }
+    setGuestSearchQuery('');
+    setGuestSearchResults([]);
+    setShowGuestSearch(false);
   };
 
   const removeGuest = async (guestId: number) => {
@@ -180,6 +188,10 @@ export default function EventModal({ event, defaultDate, onClose, onSave, catego
     } catch (err) {
       console.error('Failed to remove guest:', err);
     }
+  };
+
+  const removePendingGuest = (memberId: string) => {
+    setPendingGuestMembers(pendingGuestMembers.filter(m => m.id !== memberId));
   };
 
   // Labels
@@ -206,14 +218,21 @@ export default function EventModal({ event, defaultDate, onClose, onSave, catego
 
   // Checklist
   const addChecklistItem = async () => {
-    if (!newChecklistItem.trim() || !event?.id) return;
-    try {
-      const item = await api.events.createChecklistItem(event.id, newChecklistItem.trim());
-      setChecklist([...checklist, item]);
-      setNewChecklistItem('');
-    } catch (err) {
-      console.error('Failed to add checklist item:', err);
+    if (!newChecklistItem.trim()) return;
+    
+    if (event?.id) {
+      // Existing event - save to DB immediately
+      try {
+        const item = await api.events.createChecklistItem(event.id, newChecklistItem.trim());
+        setChecklist([...checklist, item]);
+      } catch (err) {
+        console.error('Failed to add checklist item:', err);
+      }
+    } else {
+      // New event - add to pending list
+      setPendingChecklistItems([...pendingChecklistItems, newChecklistItem.trim()]);
     }
+    setNewChecklistItem('');
   };
 
   const toggleChecklistItem = async (item: EventChecklistItem) => {
@@ -234,6 +253,10 @@ export default function EventModal({ event, defaultDate, onClose, onSave, catego
     } catch (err) {
       console.error('Failed to delete checklist item:', err);
     }
+  };
+
+  const removePendingChecklistItem = (index: number) => {
+    setPendingChecklistItems(pendingChecklistItems.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -258,10 +281,30 @@ export default function EventModal({ event, defaultDate, onClose, onSave, catego
     setError(null);
     
     try {
-      if (event) {
+      if (event?.id) {
+        // Update existing event
         await api.events.updateEvent(event.id, submitData);
       } else {
-        await api.events.createEvent(submitData);
+        // Create new event
+        const newEvent = await api.events.createEvent(submitData);
+        
+        // Add pending guests
+        for (const member of pendingGuestMembers) {
+          try {
+            await api.events.inviteGuest(newEvent.id, member.id);
+          } catch (err) {
+            console.error('Failed to invite guest:', err);
+          }
+        }
+        
+        // Add pending checklist items
+        for (const itemText of pendingChecklistItems) {
+          try {
+            await api.events.createChecklistItem(newEvent.id, itemText);
+          } catch (err) {
+            console.error('Failed to add checklist item:', err);
+          }
+        }
       }
       onSave();
     } catch (err) {
@@ -302,7 +345,7 @@ export default function EventModal({ event, defaultDate, onClose, onSave, catego
           <div className="flex items-center gap-2">
             <Calendar size={20} className="text-blue-400" />
             <h2 className="text-lg font-semibold text-white">
-              {event ? 'Event bearbeiten' : 'Neues Event'}
+              {event?.id ? 'Event bearbeiten' : 'Neues Event'}
             </h2>
           </div>
           <button onClick={onClose} className="p-1 hover:bg-white/10 rounded transition-colors">
@@ -570,111 +613,128 @@ export default function EventModal({ event, defaultDate, onClose, onSave, catego
               </div>
             </div>
 
-            {/* Checklist (only for existing events) */}
-            {event?.id && (
-              <div>
-                <label className="text-xs font-medium text-gray-400 mb-2 block flex items-center gap-1">
-                  <CheckSquare size={12} /> Checkliste
-                </label>
-                <div className="space-y-2">
-                  {checklist.map((item) => (
-                    <div key={item.id} className="flex items-center gap-2 p-2 bg-[#0d0f15] border border-white/10 rounded">
-                      <input
-                        type="checkbox"
-                        checked={item.is_completed}
-                        onChange={() => toggleChecklistItem(item)}
-                        className="w-4 h-4 rounded border-white/20 bg-[#0d0f15] text-blue-600"
-                      />
-                      <span className={`flex-1 text-sm ${item.is_completed ? 'line-through text-gray-500' : 'text-gray-300'}`}>
-                        {item.text}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => deleteChecklistItem(item.id)}
-                        className="text-gray-500 hover:text-red-400"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
-                  <div className="flex gap-2">
+            {/* Checklist */}
+            <div>
+              <label className="text-xs font-medium text-gray-400 mb-2 block flex items-center gap-1">
+                <CheckSquare size={12} /> Checkliste
+              </label>
+              <div className="space-y-2">
+                {/* Saved checklist items (for existing events) */}
+                {checklist.map((item) => (
+                  <div key={item.id} className="flex items-center gap-2 p-2 bg-[#0d0f15] border border-white/10 rounded">
                     <input
-                      type="text"
-                      value={newChecklistItem}
-                      onChange={(e) => setNewChecklistItem(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addChecklistItem())}
-                      placeholder="Neuer Eintrag..."
-                      className="flex-1 px-3 py-2 bg-[#0d0f15] border border-white/10 rounded-lg text-white text-sm"
+                      type="checkbox"
+                      checked={item.is_completed}
+                      onChange={() => toggleChecklistItem(item)}
+                      className="w-4 h-4 rounded border-white/20 bg-[#0d0f15] text-blue-600"
                     />
+                    <span className={`flex-1 text-sm ${item.is_completed ? 'line-through text-gray-500' : 'text-gray-300'}`}>
+                      {item.text}
+                    </span>
                     <button
                       type="button"
-                      onClick={addChecklistItem}
-                      disabled={!newChecklistItem.trim()}
-                      className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm disabled:opacity-50"
+                      onClick={() => deleteChecklistItem(item.id)}
+                      className="text-gray-500 hover:text-red-400"
                     >
-                      <Plus size={14} />
+                      <X size={14} />
                     </button>
                   </div>
+                ))}
+                {/* Pending checklist items (for new events) */}
+                {pendingChecklistItems.map((text, index) => (
+                  <div key={`pending-${index}`} className="flex items-center gap-2 p-2 bg-[#0d0f15] border border-white/10 rounded">
+                    <input
+                      type="checkbox"
+                      checked={false}
+                      disabled
+                      className="w-4 h-4 rounded border-white/20 bg-[#0d0f15] text-blue-600"
+                    />
+                    <span className="flex-1 text-sm text-gray-300">{text}</span>
+                    <button
+                      type="button"
+                      onClick={() => removePendingChecklistItem(index)}
+                      className="text-gray-500 hover:text-red-400"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newChecklistItem}
+                    onChange={(e) => setNewChecklistItem(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addChecklistItem())}
+                    placeholder="Neuer Eintrag..."
+                    className="flex-1 px-3 py-2 bg-[#0d0f15] border border-white/10 rounded-lg text-white text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={addChecklistItem}
+                    disabled={!newChecklistItem.trim()}
+                    className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm disabled:opacity-50"
+                  >
+                    <Plus size={14} />
+                  </button>
                 </div>
               </div>
-            )}
+            </div>
           </form>
 
-          {/* Sidebar - Guests (only for existing events) */}
-          {event?.id && (
-            <div className="w-full md:w-80 border-t md:border-t-0 md:border-l border-white/10 p-4 overflow-y-auto bg-[#151820]">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2">
-                  <Users size={14} /> Gäste ({guests.length})
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setShowGuestSearch(!showGuestSearch)}
-                  className="p-1 hover:bg-white/10 rounded text-blue-400"
-                >
-                  <Plus size={16} />
-                </button>
-              </div>
+          {/* Sidebar - Guests */}
+          <div className="w-full md:w-80 border-t md:border-t-0 md:border-l border-white/10 p-4 overflow-y-auto bg-[#151820]">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                <Users size={14} /> Gäste ({guests.length + pendingGuestMembers.length})
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowGuestSearch(!showGuestSearch)}
+                className="p-1 hover:bg-white/10 rounded text-blue-400"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
 
-              {/* Guest Search */}
-              {showGuestSearch && (
-                <div className="mb-4 relative">
-                  <div className="relative">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                    <input
-                      type="text"
-                      value={guestSearchQuery}
-                      onChange={(e) => setGuestSearchQuery(e.target.value)}
-                      placeholder="User suchen..."
-                      className="w-full pl-9 pr-3 py-2 bg-[#0d0f15] border border-white/10 rounded-lg text-white text-sm"
-                    />
-                  </div>
-                  {(searchingGuests || guestSearchResults.length > 0) && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-[#1e2228] border border-white/10 rounded-lg shadow-xl z-10 max-h-48 overflow-y-auto">
-                      {searchingGuests ? (
-                        <div className="p-3 text-center text-gray-500">
-                          <Loader2 size={16} className="animate-spin mx-auto" />
-                        </div>
-                      ) : (
-                        guestSearchResults.map((member) => (
-                          <button
-                            key={member.id}
-                            type="button"
-                            onClick={() => inviteGuest(member)}
-                            className="w-full flex items-center gap-2 p-2 hover:bg-white/5 text-left"
-                          >
-                            {member.avatar_url ? (
-                              <img src={member.avatar_url} alt="" className="w-8 h-8 rounded-full" />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-white text-sm">
-                                {member.display_name?.[0] || member.name?.[0] || '?'}
-                              </div>
-                            )}
-                            <div>
-                              <div className="text-sm text-white">{member.display_name || member.name}</div>
-                              <div className="text-xs text-gray-500">@{member.name}</div>
+            {/* Guest Search */}
+            {showGuestSearch && (
+              <div className="mb-4 relative">
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                  <input
+                    type="text"
+                    value={guestSearchQuery}
+                    onChange={(e) => setGuestSearchQuery(e.target.value)}
+                    placeholder="User suchen..."
+                    className="w-full pl-9 pr-3 py-2 bg-[#0d0f15] border border-white/10 rounded-lg text-white text-sm"
+                  />
+                </div>
+                {(searchingGuests || guestSearchResults.length > 0) && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#1e2228] border border-white/10 rounded-lg shadow-xl z-10 max-h-48 overflow-y-auto">
+                    {searchingGuests ? (
+                      <div className="p-3 text-center text-gray-500">
+                        <Loader2 size={16} className="animate-spin mx-auto" />
+                      </div>
+                    ) : (
+                      guestSearchResults.map((member) => (
+                        <button
+                          key={member.id}
+                          type="button"
+                          onClick={() => inviteGuest(member)}
+                          className="w-full flex items-center gap-2 p-2 hover:bg-white/5 text-left"
+                        >
+                          {member.avatar_url ? (
+                            <img src={member.avatar_url} alt="" className="w-8 h-8 rounded-full" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-white text-sm">
+                              {member.display_name?.[0] || member.name?.[0] || '?'}
                             </div>
-                          </button>
+                          )}
+                          <div>
+                            <div className="text-sm text-white">{member.display_name || member.name}</div>
+                            <div className="text-xs text-gray-500">@{member.name}</div>
+                          </div>
+                        </button>
                         ))
                       )}
                     </div>
@@ -684,49 +744,81 @@ export default function EventModal({ event, defaultDate, onClose, onSave, catego
 
               {/* Guest List with RSVP Status */}
               <div className="space-y-2">
-                {guests.length === 0 ? (
+                {guests.length === 0 && pendingGuestMembers.length === 0 ? (
                   <p className="text-xs text-gray-500 text-center py-4">
                     Noch keine Gäste eingeladen
                   </p>
                 ) : (
-                  guests.map((guest) => (
-                    <div
-                      key={guest.id}
-                      className="flex items-center gap-2 p-2 bg-[#0d0f15] border border-white/10 rounded-lg"
-                    >
-                      {guest.user_avatar ? (
-                        <img
-                          src={`https://cdn.discordapp.com/avatars/${guest.user_id}/${guest.user_avatar}.png?size=32`}
-                          alt=""
-                          className="w-8 h-8 rounded-full"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-white text-xs">
-                          {guest.user_display_name?.[0] || '?'}
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm text-white truncate">{guest.user_display_name}</div>
-                        <div className="flex items-center gap-1 text-xs">
-                          {getRSVPIcon(guest.rsvp_status)}
-                          <span className={`${
-                            guest.rsvp_status === 'accepted' ? 'text-green-400' :
-                            guest.rsvp_status === 'declined' ? 'text-red-400' :
-                            'text-yellow-400'
-                          }`}>
-                            {getRSVPText(guest.rsvp_status)}
-                          </span>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeGuest(guest.id)}
-                        className="text-gray-500 hover:text-red-400 p-1"
+                  <>
+                    {/* Saved guests (for existing events) */}
+                    {guests.map((guest) => (
+                      <div
+                        key={guest.id}
+                        className="flex items-center gap-2 p-2 bg-[#0d0f15] border border-white/10 rounded-lg"
                       >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))
+                        {guest.user_avatar ? (
+                          <img
+                            src={`https://cdn.discordapp.com/avatars/${guest.user_id}/${guest.user_avatar}.png?size=32`}
+                            alt=""
+                            className="w-8 h-8 rounded-full"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-white text-xs">
+                            {guest.user_display_name?.[0] || '?'}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm text-white truncate">{guest.user_display_name}</div>
+                          <div className="flex items-center gap-1 text-xs">
+                            {getRSVPIcon(guest.rsvp_status)}
+                            <span className={`${
+                              guest.rsvp_status === 'accepted' ? 'text-green-400' :
+                              guest.rsvp_status === 'declined' ? 'text-red-400' :
+                              'text-yellow-400'
+                            }`}>
+                              {getRSVPText(guest.rsvp_status)}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeGuest(guest.id)}
+                          className="text-gray-500 hover:text-red-400 p-1"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    {/* Pending guests (for new events) */}
+                    {pendingGuestMembers.map((member) => (
+                      <div
+                        key={member.id}
+                        className="flex items-center gap-2 p-2 bg-[#0d0f15] border border-white/10 rounded-lg"
+                      >
+                        {member.avatar_url ? (
+                          <img src={member.avatar_url} alt="" className="w-8 h-8 rounded-full" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-white text-xs">
+                            {member.display_name?.[0] || member.name?.[0] || '?'}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm text-white truncate">{member.display_name || member.name}</div>
+                          <div className="flex items-center gap-1 text-xs">
+                            <HelpCircle size={14} className="text-yellow-400" />
+                            <span className="text-yellow-400">Wird eingeladen</span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removePendingGuest(member.id)}
+                          className="text-gray-500 hover:text-red-400 p-1"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </>
                 )}
               </div>
 
@@ -757,7 +849,6 @@ export default function EventModal({ event, defaultDate, onClose, onSave, catego
                 </div>
               )}
             </div>
-          )}
         </div>
 
         {/* Footer */}
@@ -775,7 +866,7 @@ export default function EventModal({ event, defaultDate, onClose, onSave, catego
             className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium disabled:opacity-50"
             disabled={loading}
           >
-            {loading ? <Loader2 size={16} className="animate-spin mx-auto" /> : (event ? 'Speichern' : 'Erstellen')}
+            {loading ? <Loader2 size={16} className="animate-spin mx-auto" /> : (event?.id ? 'Speichern' : 'Erstellen')}
           </button>
         </div>
       </div>
