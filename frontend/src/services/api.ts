@@ -236,11 +236,15 @@ export const api = {
       if (params?.month) query.set('month', params.month.toString());
       if (params?.year) query.set('year', params.year.toString());
       
-      return fetch(`${API_BASE_URL}/api/matches?${query.toString()}`).then(res => res.json());
+      return fetch(`${API_BASE_URL}/api/matches?${query.toString()}`, {
+        headers: getAuthHeaders(),
+      }).then(res => res.json());
     },
     
     getMatchById: (id: number) => 
-      fetch(`${API_BASE_URL}/api/matches/${id}`).then(res => res.json()),
+      fetch(`${API_BASE_URL}/api/matches/${id}`, {
+        headers: getAuthHeaders(),
+      }).then(res => res.json()),
     
     createMatch: (data: { title: string; description: string; start_date: string; end_date: string; start_time: string; end_time: string; color: string; location: string; guests: string }) =>
       fetch(`${API_BASE_URL}/api/matches`, {

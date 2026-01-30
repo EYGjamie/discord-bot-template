@@ -11,19 +11,29 @@ import (
 
 // LogMessageEdit sendet ein Embed für editierte Nachrichten in den Moderations-Kanal
 func LogMessageEdit(s *discordgo.Session, settings *settings.Manager, beforeMsg, afterMsg *discordgo.Message) {
-	// Prüfe ob Message-Edit-Logging aktiviert ist
-	if !settings.GetBool("log_message_edits", false) {
+	guildID := beforeMsg.GuildID
+
+	// Prüfe ob Message-Edit-Logging aktiviert ist (erst guild-spezifisch, dann global)
+	if !settings.GetBool("log_message_edits_"+guildID, false) && !settings.GetBool("log_message_edits", false) {
 		return
 	}
 
-	// Hole Moderations-Channel-ID
-	channelID := settings.GetString("moderation_channel_id", "")
+	// Hole Moderations-Channel-ID (erst guild-spezifisch, dann global)
+	channelID := settings.GetString("moderation_channel_id_"+guildID, "")
+	if channelID == "" {
+		channelID = settings.GetString("moderation_channel_id", "")
+	}
 	if channelID == "" {
 		return
 	}
 
 	// Ignoriere Bot-Nachrichten
 	if beforeMsg.Author != nil && beforeMsg.Author.Bot {
+		return
+	}
+
+	// Ignoriere wenn der Content sich nicht geändert hat (z.B. nur Embed-Updates)
+	if beforeMsg.Content == afterMsg.Content {
 		return
 	}
 
@@ -83,13 +93,18 @@ func LogMessageEdit(s *discordgo.Session, settings *settings.Manager, beforeMsg,
 
 // LogMessageDelete sendet ein Embed für gelöschte Nachrichten in den Moderations-Kanal
 func LogMessageDelete(s *discordgo.Session, settings *settings.Manager, msg *discordgo.Message) {
-	// Prüfe ob Message-Delete-Logging aktiviert ist
-	if !settings.GetBool("log_message_deletes", false) {
+	guildID := msg.GuildID
+
+	// Prüfe ob Message-Delete-Logging aktiviert ist (erst guild-spezifisch, dann global)
+	if !settings.GetBool("log_message_deletes_"+guildID, false) && !settings.GetBool("log_message_deletes", false) {
 		return
 	}
 
-	// Hole Moderations-Channel-ID
-	channelID := settings.GetString("moderation_channel_id", "")
+	// Hole Moderations-Channel-ID (erst guild-spezifisch, dann global)
+	channelID := settings.GetString("moderation_channel_id_"+guildID, "")
+	if channelID == "" {
+		channelID = settings.GetString("moderation_channel_id", "")
+	}
 	if channelID == "" {
 		return
 	}

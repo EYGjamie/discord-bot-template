@@ -54,6 +54,10 @@ func New() (*Bot, error) {
 	// Register ALL Bot-Intents
 	session.Identify.Intents = discordgo.IntentsAll
 
+	// Enable State Tracking for message caching (required for BeforeDelete/BeforeUpdate)
+	session.StateEnabled = true
+	session.State.MaxMessageCount = 1000 // Cache up to 1000 messages per channel
+
 	// Initialize database connection
 	dbService := database.New()
 

@@ -13,19 +13,7 @@
 Webapp:
 Audit Logs nutzen um "Recent" History auf Profil zu machen / ggf auf dem Dashboard - Nur für Admins/Devs Sichtbar
 
-Ideen fürs Dashboard sammeln:
--
-
-Settings:
-Bot Settings die eigentlich über den Command funktionieren würden auslagern - Commands deaktivieren über ENV
-
-Persönliche Settings:
-Discord Benachrichtigungen
-Sprache?
-Timezone?
-Style?
-
-PL Ticket als extra Bereich
+PL Ticker als extra Bereich
 Forum
 Orgchart
 Interne Stellenangebote
