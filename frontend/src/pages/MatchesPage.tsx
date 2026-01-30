@@ -46,17 +46,28 @@ export default function MatchesPage() {
     loadMatches();
   }, [selectedDate]);
 
-  // Initialize selected colors when categories load
+  // Initialize selected colors when categories load or matches change
   useEffect(() => {
-    if (categories.length > 0) {
-      const colors = new Set(categories.map(c => c.color));
-      console.log('Initializing selectedColors:', Array.from(colors));
-      setSelectedColors(colors);
-    }
-  }, [categories]);
+    // Collect all colors from categories
+    const categoryColors = new Set(categories.map(c => c.color));
+    
+    // Also include colors from loaded matches that might not be in categories
+    const matchColors = new Set(matches.map(m => m.color).filter(Boolean));
+    
+    // Combine both sets
+    const allColors = new Set([...categoryColors, ...matchColors]);
+    
+    console.log('Initializing selectedColors:', Array.from(allColors));
+    setSelectedColors(allColors);
+  }, [categories, matches]);
 
   // Filter matches for selected date
   useEffect(() => {
+    // Wait until selectedColors is initialized
+    if (selectedColors.size === 0 && (categories.length > 0 || matches.length > 0)) {
+      return;
+    }
+    
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
     console.log('Filtering matches for date:', dateStr);
     console.log('Total matches:', matches.length);
@@ -362,6 +373,26 @@ export default function MatchesPage() {
                     <span className="truncate">{category.name}</span>
                   </button>
                 ))}
+                {/* Show colors from matches that don't have a category */}
+                {Array.from(new Set(matches.map(m => m.color)))
+                  .filter(color => color && !categories.some(c => c.color === color))
+                  .map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => toggleColor(color)}
+                      className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs transition-all ${
+                        selectedColors.has(color)
+                          ? 'bg-gray-700 text-white'
+                          : 'bg-gray-750 text-gray-500 opacity-60'
+                      }`}
+                    >
+                      <div
+                        className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: color }}
+                      />
+                      <span className="truncate">Other</span>
+                    </button>
+                  ))}
               </div>
             </div>
           </div>

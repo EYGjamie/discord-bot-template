@@ -128,14 +128,19 @@ const DiscordPage: React.FC = () => {
   ) => {
     if (data.length === 0) return null;
 
-    const values = data.map(stat => {
+    // Sortiere nach Timestamp aufsteigend (älteste zuerst = links, neueste zuletzt = rechts)
+    const sortedData = [...data].sort((a, b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+
+    const values = sortedData.map(stat => {
       let value = typeof stat[valueKey] === 'number' ? stat[valueKey] as number : 0;
       // Konvertiere Sekunden in Stunden für Voice Time
       if (convertToHours) {
         value = value / 3600;
       }
       return value;
-    }).reverse();
+    });
     
     const max = Math.max(...values);
     const min = Math.min(...values);
@@ -172,8 +177,8 @@ const DiscordPage: React.FC = () => {
           </div>
         </div>
         <div className="flex justify-between mt-2 text-xs text-gray-500">
-          <span>{new Date(data[data.length - 1]?.timestamp || '').toLocaleDateString('de-DE', { day: '2-digit', month: 'short' })}</span>
-          <span>{new Date(data[0]?.timestamp || '').toLocaleDateString('de-DE', { day: '2-digit', month: 'short' })}</span>
+          <span>{new Date(sortedData[0]?.timestamp || '').toLocaleDateString('de-DE', { day: '2-digit', month: 'short' })}</span>
+          <span>{new Date(sortedData[sortedData.length - 1]?.timestamp || '').toLocaleDateString('de-DE', { day: '2-digit', month: 'short' })}</span>
         </div>
       </div>
     );
