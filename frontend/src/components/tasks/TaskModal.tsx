@@ -447,61 +447,65 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, boardId, onClose, onUpdate,
                   </div>
 
                   {/* Checklist */}
-                  {isEditMode && checklist && checklist.length > 0 && (
+                  {isEditMode && (
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <span className="text-white">☑️</span>
                           <h3 className="text-lg font-semibold text-white">Checkliste</h3>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-400">
-                            {Math.round((checklist.filter(item => item.is_completed).length / checklist.length) * 100)}%
-                          </span>
-                          <div className="w-20 h-2 bg-white/10 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-green-500 transition-all"
-                              style={{ width: `${checklist.length > 0 ? (checklist.filter(item => item.is_completed).length / checklist.length) * 100 : 0}%` }}
-                            />
+                        {checklist.length > 0 && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-400">
+                              {Math.round((checklist.filter(item => item.is_completed).length / checklist.length) * 100)}%
+                            </span>
+                            <div className="w-20 h-2 bg-white/10 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-green-500 transition-all"
+                                style={{ width: `${checklist.length > 0 ? (checklist.filter(item => item.is_completed).length / checklist.length) * 100 : 0}%` }}
+                              />
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
 
-                      <div className="space-y-2 mb-3 max-h-64 overflow-y-auto pr-2">
-                        {checklist.map((item) => (
-                          <div key={item.id} className="flex items-center gap-2 bg-[#0d0f15] border border-white/10 rounded-lg p-3 hover:bg-white/5">
-                            {canEdit ? (
-                              <button
-                                type="button"
-                                onClick={() => handleToggleChecklistItem(item.id)}
-                                className="flex-shrink-0"
-                              >
+                      {checklist.length > 0 && (
+                        <div className="space-y-2 mb-3 max-h-64 overflow-y-auto pr-2">
+                          {checklist.map((item) => (
+                            <div key={item.id} className="flex items-center gap-2 bg-[#0d0f15] border border-white/10 rounded-lg p-3 hover:bg-white/5">
+                              {canEdit ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleChecklistItem(item.id)}
+                                  className="flex-shrink-0"
+                                >
+                                  <CheckSquare 
+                                    size={18} 
+                                    className={item.is_completed ? 'text-green-500' : 'text-gray-500'}
+                                  />
+                                </button>
+                              ) : (
                                 <CheckSquare 
                                   size={18} 
                                   className={item.is_completed ? 'text-green-500' : 'text-gray-500'}
                                 />
-                              </button>
-                            ) : (
-                              <CheckSquare 
-                                size={18} 
-                                className={item.is_completed ? 'text-green-500' : 'text-gray-500'}
-                              />
-                            )}
-                            <span className={`text-sm flex-1 ${item.is_completed ? 'line-through text-gray-500' : 'text-gray-300'}`}>
-                              {item.text}
-                            </span>
-                            {canEdit && (
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteChecklistItem(item.id)}
-                                className="text-gray-500 hover:text-red-500 text-sm"
-                              >
-                                ×
-                              </button>
+                              )}
+                              <span className={`text-sm flex-1 ${item.is_completed ? 'line-through text-gray-500' : 'text-gray-300'}`}>
+                                {item.text}
+                              </span>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteChecklistItem(item.id)}
+                                  className="text-gray-500 hover:text-red-500 text-sm"
+                                >
+                                  ×
+                                </button>
                             )}
                           </div>
                         ))}
-                      </div>
+                        </div>
+                      )}
 
                       {canEdit && (
                         <div className="flex gap-2">

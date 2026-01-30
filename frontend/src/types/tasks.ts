@@ -62,6 +62,8 @@ export interface Task {
   created_at: string;
   updated_at: string;
   permission?: PermissionLevel; // Added by permission checker
+  checklist_total?: number;
+  checklist_completed?: number;
 }
 
 export interface TaskWithTags extends Omit<Task, 'tags'> {
@@ -84,6 +86,8 @@ export interface FilteredTask {
   created_at: string;
   updated_at?: string; // Only if permission >= read_content
   permission: PermissionLevel;
+  checklist_total?: number; // Only if permission >= read_content
+  checklist_completed?: number; // Only if permission >= read_content
 }
 
 export interface TaskGroup {

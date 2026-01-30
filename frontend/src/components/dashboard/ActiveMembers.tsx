@@ -1,44 +1,123 @@
-import type { Member } from '../../types';
+import { useState, useEffect } from 'react';
+import { api } from '../../services/api';
+import { formatDistanceToNow } from 'date-fns';
 
-const mockMembers: Member[] = [
-  { id: '1', name: 'alexstorm', display_name: 'Alex Storm', top_role_name: 'Team Captain', avatar_url: '', global_name: 'Alex Storm', bot: false, avatar: '', mention: '<@1>', created_at: '', nick: '', joined_at: '', top_role: '1', timed_out_until: undefined, premium_since: undefined, updated_at: '' },
-  { id: '2', name: 'mayachen', display_name: 'Maya Chen', top_role_name: 'Support', avatar_url: '', global_name: 'Maya Chen', bot: false, avatar: '', mention: '<@2>', created_at: '', nick: '', joined_at: '', top_role: '2', timed_out_until: undefined, premium_since: undefined, updated_at: '' },
-  { id: '3', name: 'jakewilson', display_name: 'Jake Wilson', top_role_name: 'Manager', avatar_url: '', global_name: 'Jake Wilson', bot: false, avatar: '', mention: '<@3>', created_at: '', nick: '', joined_at: '', top_role: '3', timed_out_until: undefined, premium_since: undefined, updated_at: '' },
-  { id: '4', name: 'sarahkim', display_name: 'Sarah Kim', top_role_name: 'Coach', avatar_url: '', global_name: 'Sarah Kim', bot: false, avatar: '', mention: '<@4>', created_at: '', nick: '', joined_at: '', top_role: '4', timed_out_until: undefined, premium_since: undefined, updated_at: '' },
-  { id: '5', name: 'nightowl', display_name: 'NightOwl', top_role_name: 'New Member', avatar_url: '', global_name: 'NightOwl', bot: false, avatar: '', mention: '<@5>', created_at: '', nick: '', joined_at: '', top_role: '5', timed_out_until: undefined, premium_since: undefined, updated_at: '' },
-];
+interface ActiveUser {
+  id: string;
+  display_name: string;
+  avatar: string;
+  avatar_url: string;
+  top_role: string;
+  top_role_name: string | null;
+  top_role_color: string | null;
+  last_active: string;
+  is_online: boolean;
+}
 
-const roleColors: Record<string, string> = {
-  'Team Captain': 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
-  'Support': 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-  'Manager': 'bg-orange-500/10 text-orange-400 border-orange-500/20',
-  'Coach': 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
-  'New Member': 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+// Get Discord avatar URL
+const getAvatarUrl = (avatar: string, avatarUrl: string, userId: string): string => {
+  if (avatarUrl) return avatarUrl;
+  if (avatar) return `https://cdn.discordapp.com/avatars/${userId}/${avatar}.png?size=64`;
+  return `https://cdn.discordapp.com/embed/avatars/${parseInt(userId) % 5}.png`;
 };
 
 export default function ActiveMembers() {
+  const [users, setUsers] = useState<ActiveUser[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadActiveUsers();
+    // Refresh every 30 seconds
+    const interval = setInterval(loadActiveUsers, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadActiveUsers = async () => {
+    try {
+      const response = await api.dashboard.getActiveUsers();
+      setUsers(response.users || []);
+    } catch (err) {
+      console.error('Failed to load active users:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatLastSeen = (timestamp: string): string => {
+    try {
+      return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
+    } catch {
+      return 'recently';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-[#1a1f2e] rounded-lg p-4 sm:p-6 border border-gray-800">
+        <h2 className="text-white text-base sm:text-lg font-semibold mb-3 sm:mb-4">Active Members</h2>
+        <div className="text-gray-400 text-center py-4 text-sm">Loading...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-[#1a1f2e] rounded-lg p-4 sm:p-6 border border-gray-800">
-      <h2 className="text-white text-base sm:text-lg font-semibold mb-3 sm:mb-4">Active Members</h2>
-      <div className="space-y-3">
-        {mockMembers.map((member) => (
-          <div key={member.id} className="flex items-center gap-2 sm:gap-3">
-            <div className="relative flex-shrink-0">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gray-700 flex items-center justify-center text-white text-xs sm:text-sm font-medium">
-                {member.display_name.split(' ').map(n => n[0]).join('')}
-              </div>
-              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full border-2 border-[#1a1f2e]" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-white font-medium text-xs sm:text-sm truncate">{member.display_name}</p>
-              <p className="text-gray-400 text-xs truncate">{member.top_role_name}</p>
-            </div>
-            <span className={`hidden sm:flex px-2 py-1 text-xs font-medium rounded border ${roleColors[member.top_role_name || ''] || 'bg-gray-500/10 text-gray-400 border-gray-500/20'} flex-shrink-0`}>
-              {member.top_role_name?.split(' ')[0]}
-            </span>
-          </div>
-        ))}
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <h2 className="text-white text-base sm:text-lg font-semibold">Active Members</h2>
       </div>
+      
+      {users.length === 0 ? (
+        <div className="text-gray-400 text-center py-8 text-sm">
+          No active members right now.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {users.map((user) => (
+            <div key={user.id} className="flex items-center gap-2 sm:gap-3">
+              <div className="relative flex-shrink-0">
+                <img
+                  src={getAvatarUrl(user.avatar, user.avatar_url, user.id)}
+                  alt={user.display_name}
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gray-700"
+                />
+                <div 
+                  className={`absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border-2 border-[#1a1f2e] ${
+                    user.is_online ? 'bg-green-500' : 'bg-gray-500'
+                  }`} 
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-medium text-xs sm:text-sm truncate">{user.display_name}</p>
+                {user.is_online ? (
+                  user.top_role_name && (
+                    <p 
+                      className="text-xs truncate"
+                      style={{ color: user.top_role_color || '#9ca3af' }}
+                    >
+                      {user.top_role_name}
+                    </p>
+                  )
+                ) : (
+                  <p className="text-xs text-gray-500 truncate">
+                    {formatLastSeen(user.last_active)}
+                  </p>
+                )}
+              </div>
+              {!user.is_online && user.top_role_name && (
+                <span 
+                  className="hidden sm:block text-xs px-2 py-0.5 rounded truncate max-w-[80px]"
+                  style={{ 
+                    color: user.top_role_color || '#9ca3af',
+                    backgroundColor: `${user.top_role_color || '#9ca3af'}15`
+                  }}
+                >
+                  {user.top_role_name}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

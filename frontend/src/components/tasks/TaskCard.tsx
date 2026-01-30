@@ -134,11 +134,11 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging = false, onClick }
             </div>
           )}
 
-          {/* Checklist Progress (placeholder - will be dynamic) */}
-          {task.description && task.description.includes('checklist') && (
-            <div className="flex items-center gap-1 text-gray-400">
+          {/* Checklist Progress */}
+          {task.checklist_total !== undefined && task.checklist_total > 0 && (
+            <div className={`flex items-center gap-1 ${task.checklist_completed === task.checklist_total ? 'text-green-400' : 'text-gray-400'}`}>
               <CheckSquare size={12} />
-              <span>0/0</span>
+              <span>{task.checklist_completed}/{task.checklist_total}</span>
             </div>
           )}
 

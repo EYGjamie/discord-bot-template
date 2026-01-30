@@ -252,11 +252,18 @@ func (h *TasksHandler) GetBoardTasks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := `
-		SELECT id, board_id, group_id, title, description, status, position, 
-		       assignee_id, start_date, due_date, tags, created_by, created_at, updated_at
-		FROM tasks
-		WHERE board_id = $1
-		ORDER BY status, position, created_at
+		SELECT t.id, t.board_id, t.group_id, t.title, t.description, t.status, t.position, 
+		       t.assignee_id, t.start_date, t.due_date, t.tags, t.created_by, t.created_at, t.updated_at,
+		       COALESCE(cl.total, 0) AS checklist_total,
+		       COALESCE(cl.completed, 0) AS checklist_completed
+		FROM tasks t
+		LEFT JOIN (
+			SELECT task_id, COUNT(*) AS total, COUNT(*) FILTER (WHERE is_completed = true) AS completed
+			FROM task_checklist_items
+			GROUP BY task_id
+		) cl ON cl.task_id = t.id
+		WHERE t.board_id = $1
+		ORDER BY t.status, t.position, t.created_at
 	`
 
 	rows, err := h.DB.Query(query, boardID)
@@ -269,9 +276,10 @@ func (h *TasksHandler) GetBoardTasks(w http.ResponseWriter, r *http.Request) {
 	var tasks []map[string]interface{}
 	for rows.Next() {
 		var task tables.Task
+		var checklistTotal, checklistCompleted int
 		err := rows.Scan(&task.ID, &task.BoardID, &task.GroupID, &task.Title, &task.Description,
 			&task.Status, &task.Position, &task.AssigneeID, &task.StartDate, &task.DueDate, &task.Tags,
-			&task.CreatedBy, &task.CreatedAt, &task.UpdatedAt)
+			&task.CreatedBy, &task.CreatedAt, &task.UpdatedAt, &checklistTotal, &checklistCompleted)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -310,6 +318,8 @@ func (h *TasksHandler) GetBoardTasks(w http.ResponseWriter, r *http.Request) {
 			taskMap["tags"] = task.Tags
 			taskMap["created_by"] = task.CreatedBy
 			taskMap["updated_at"] = task.UpdatedAt
+			taskMap["checklist_total"] = checklistTotal
+			taskMap["checklist_completed"] = checklistCompleted
 		}
 
 		tasks = append(tasks, taskMap)

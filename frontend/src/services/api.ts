@@ -39,8 +39,15 @@ export const api = {
   },
   
   dashboard: {
-    getStats: () => fetch(`${API_BASE_URL}/api/dashboard/stats`).then(res => res.json()),
-    getActivity: () => fetch(`${API_BASE_URL}/api/dashboard/activity`).then(res => res.json()),
+    getStats: () => fetch(`${API_BASE_URL}/api/dashboard/stats`, {
+      headers: getAuthHeaders(),
+    }).then(res => res.json()),
+    getActiveUsers: () => fetch(`${API_BASE_URL}/api/dashboard/active-users`, {
+      headers: getAuthHeaders(),
+    }).then(res => res.json()),
+    getRecentActivity: () => fetch(`${API_BASE_URL}/api/dashboard/recent-activity`, {
+      headers: getAuthHeaders(),
+    }).then(res => res.json()),
   },
   
   members: {

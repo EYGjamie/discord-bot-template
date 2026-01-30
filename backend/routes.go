@@ -501,6 +501,17 @@ func (s *Server) RegisterRoutes() http.Handler {
 		middleware.RequireAuth(http.HandlerFunc(notificationSettingsHandler.UpdateBoardNotificationSettings)),
 	)
 
+	// Dashboard routes (protected - requires authentication)
+	mux.HandleFunc("GET /api/dashboard/stats",
+		middleware.RequireAuth(handlers.GetDashboardStats(s.db.DB())),
+	)
+	mux.HandleFunc("GET /api/dashboard/active-users",
+		middleware.RequireAuth(handlers.GetActiveUsers(s.db.DB())),
+	)
+	mux.HandleFunc("GET /api/dashboard/recent-activity",
+		middleware.RequireAuth(handlers.GetRecentActivity(s.db.DB())),
+	)
+
 	// Health check
 	mux.HandleFunc("/health", s.healthHandler)
 

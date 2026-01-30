@@ -16,10 +16,6 @@ Audit Logs nutzen um "Recent" History auf Profil zu machen / ggf auf dem Dashboa
 Ideen fürs Dashboard sammeln:
 -
 
-Kalender:
-events Kalender Guests Auswahl von Usern auf dem Discord -> Benachrichtigung über Termin über Discord mit ggf Annehmen/Ablehnen etc.
-Events und Matches Kalender unterschiedliche Categories
-
 Settings:
 Bot Settings die eigentlich über den Command funktionieren würden auslagern - Commands deaktivieren über ENV
 
@@ -41,5 +37,3 @@ Statistiken zu Club und Teams
 ## TODO
 
 Test:
-- Create Task Berechtigungen
-- Benachrichtigungen für Tasks (mit an- und ausstellen)
