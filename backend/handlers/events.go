@@ -293,15 +293,9 @@ func UpdateEvent(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		// Check if event exists and get creator + check if user is admin
+		// Check if event exists and get creator
 		var createdBy string
-		var isAdmin bool
-		err = db.QueryRow(`
-			SELECT e.created_by, COALESCE(u.is_admin, false) as is_admin
-			FROM events e
-			LEFT JOIN users u ON u.id = $1
-			WHERE e.id = $2
-		`, userID, id).Scan(&createdBy, &isAdmin)
+		err = db.QueryRow(`SELECT created_by FROM events WHERE id = $1`, id).Scan(&createdBy)
 
 		if err == sql.ErrNoRows {
 			http.Error(w, "Event not found", http.StatusNotFound)
@@ -313,8 +307,8 @@ func UpdateEvent(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		// Check permissions: own event or admin
-		if createdBy != userID && !isAdmin {
+		// Check permissions: user must be creator
+		if createdBy != userID {
 			http.Error(w, "Forbidden: You can only edit your own events", http.StatusForbidden)
 			return
 		}
@@ -392,15 +386,9 @@ func DeleteEvent(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		// Check if event exists and get creator + check if user is admin
+		// Check if event exists and get creator
 		var createdBy, title string
-		var isAdmin bool
-		err = db.QueryRow(`
-			SELECT e.created_by, e.title, COALESCE(u.is_admin, false) as is_admin
-			FROM events e
-			LEFT JOIN users u ON u.id = $1
-			WHERE e.id = $2
-		`, userID, id).Scan(&createdBy, &title, &isAdmin)
+		err = db.QueryRow(`SELECT created_by, title FROM events WHERE id = $1`, id).Scan(&createdBy, &title)
 
 		if err == sql.ErrNoRows {
 			http.Error(w, "Event not found", http.StatusNotFound)
@@ -412,8 +400,8 @@ func DeleteEvent(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		// Check permissions: own event or admin
-		if createdBy != userID && !isAdmin {
+		// Check permissions: user must be creator
+		if createdBy != userID {
 			http.Error(w, "Forbidden: You can only delete your own events", http.StatusForbidden)
 			return
 		}

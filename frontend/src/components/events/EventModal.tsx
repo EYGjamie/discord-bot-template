@@ -22,12 +22,26 @@ const LABEL_COLORS = [
   { value: 'teal', bg: 'bg-teal-600', text: 'text-white', name: 'Türkis' },
 ];
 
+// Helper function to format date for input field (yyyy-MM-dd)
+const formatDateForInput = (dateStr: string | undefined): string => {
+  if (!dateStr) return '';
+  // If already in yyyy-MM-dd format, return as is
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+  // Otherwise parse and format (handles ISO strings like "2026-01-31T00:00:00Z")
+  try {
+    const date = new Date(dateStr);
+    return date.toISOString().split('T')[0];
+  } catch {
+    return '';
+  }
+};
+
 export default function EventModal({ event, defaultDate, onClose, onSave, categories = [] }: EventModalProps) {
   const [formData, setFormData] = useState({
     title: event?.title || '',
     description: event?.description || '',
-    start_date: event?.start_date || defaultDate || '',
-    end_date: event?.end_date || defaultDate || '',
+    start_date: formatDateForInput(event?.start_date) || defaultDate || '',
+    end_date: formatDateForInput(event?.end_date) || defaultDate || '',
     start_time: event?.start_time || '09:00',
     end_time: event?.end_time || '10:00',
     is_all_day: event?.is_all_day || false,

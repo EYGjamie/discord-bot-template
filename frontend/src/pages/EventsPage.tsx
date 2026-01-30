@@ -388,7 +388,7 @@ export default function EventsPage() {
                 {filteredEvents.map((event) => (
                   <div
                     key={event.id}
-                    onClick={() => setSelectedEvent(event)}
+                    onClick={() => handleEditEvent(event)}
                     className={`p-3 sm:p-4 rounded-lg border-l-4 cursor-pointer transition-all shadow-md ${
                       selectedEvent?.id === event.id
                         ? 'bg-gray-700 border-blue-500 shadow-lg shadow-blue-500/20'
@@ -400,15 +400,6 @@ export default function EventsPage() {
                       <h3 className="text-white font-semibold text-sm sm:text-lg">{event.title}</h3>
                       {canEditEvent(event) && (
                         <div className="flex gap-2">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditEvent(event);
-                            }}
-                            className="p-1 hover:bg-gray-600 rounded transition-colors"
-                          >
-                            <Edit2 size={16} className="text-blue-400" />
-                          </button>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -530,10 +521,7 @@ export default function EventsPage() {
             {upcomingEvents.map((event) => (
               <div
                 key={event.id}
-                onClick={() => {
-                  setSelectedDate(parseISO(event.start_date));
-                  setSelectedEvent(event);
-                }}
+                onClick={() => handleEditEvent(event)}
                 className="p-4 rounded-lg border-l-4 cursor-pointer transition-all shadow-md bg-gray-700/80 hover:bg-gray-700 border-gray-500 hover:shadow-lg"
                 style={{ borderLeftColor: event.color }}
               >
