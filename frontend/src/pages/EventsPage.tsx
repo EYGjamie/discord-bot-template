@@ -5,6 +5,12 @@ import { api } from '../services/api';
 import type { CalendarEvent } from '../types';
 import { format, parseISO, isSameDay, isAfter, startOfDay } from 'date-fns';
 import { Calendar as CalendarIcon, Clock, MapPin, Plus, Edit2, Trash2, Users, Settings, X, Save } from 'lucide-react';
+
+// Helper to format time without seconds (HH:MM:SS -> HH:MM)
+const formatTime = (time: string | undefined): string => {
+  if (!time) return '';
+  return time.substring(0, 5); // Take only HH:MM
+};
 import EventModal from '../components/events/EventModal';
 import { useAuth } from '../hooks/useAuth';
 import { usePermissions } from '../hooks/usePermissions';
@@ -417,7 +423,7 @@ export default function EventsPage() {
                       {!event.is_all_day && (
                         <div className="flex items-center gap-1">
                           <Clock size={14} />
-                          <span>{event.start_time} - {event.end_time}</span>
+                          <span>{formatTime(event.start_time)} - {formatTime(event.end_time)}</span>
                         </div>
                       )}
                       {event.is_all_day && (
@@ -471,7 +477,7 @@ export default function EventsPage() {
                   {!selectedEvent.is_all_day && (
                     <div>
                       <p className="text-sm text-gray-400">Time</p>
-                      <p>{selectedEvent.start_time} - {selectedEvent.end_time}</p>
+                      <p>{formatTime(selectedEvent.start_time)} - {formatTime(selectedEvent.end_time)}</p>
                     </div>
                   )}
                   {selectedEvent.is_all_day && (
@@ -533,7 +539,7 @@ export default function EventsPage() {
                   </div>
                   <div className="flex items-center gap-1">
                     <Clock size={12} />
-                    <span>{event.start_time}</span>
+                    <span>{formatTime(event.start_time)}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-gray-500 mt-2">

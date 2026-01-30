@@ -36,14 +36,36 @@ const formatDateForInput = (dateStr: string | undefined): string => {
   }
 };
 
+// Helper to format time for input (remove seconds if present)
+const formatTimeForInput = (timeStr: string | undefined): string => {
+  if (!timeStr) return getNextFullHour();
+  return timeStr.substring(0, 5); // Take only HH:MM
+};
+
+// Helper to get the next full hour
+const getNextFullHour = (): string => {
+  const now = new Date();
+  const nextHour = now.getMinutes() > 0 ? now.getHours() + 1 : now.getHours();
+  const hour = nextHour >= 24 ? 0 : nextHour;
+  return `${String(hour).padStart(2, '0')}:00`;
+};
+
+// Helper to get one hour after the next full hour
+const getNextFullHourPlusOne = (): string => {
+  const now = new Date();
+  const nextHour = now.getMinutes() > 0 ? now.getHours() + 2 : now.getHours() + 1;
+  const hour = nextHour >= 24 ? nextHour - 24 : nextHour;
+  return `${String(hour).padStart(2, '0')}:00`;
+};
+
 export default function EventModal({ event, defaultDate, onClose, onSave, categories = [] }: EventModalProps) {
   const [formData, setFormData] = useState({
     title: event?.title || '',
     description: event?.description || '',
     start_date: formatDateForInput(event?.start_date) || defaultDate || '',
     end_date: formatDateForInput(event?.end_date) || defaultDate || '',
-    start_time: event?.start_time || '09:00',
-    end_time: event?.end_time || '10:00',
+    start_time: event ? formatTimeForInput(event.start_time) : getNextFullHour(),
+    end_time: event ? formatTimeForInput(event.end_time) : getNextFullHourPlusOne(),
     is_all_day: event?.is_all_day || false,
     color: event?.color || '#4285F4',
     location: event?.location || '',
@@ -330,7 +352,24 @@ export default function EventModal({ event, defaultDate, onClose, onSave, catego
                 <input
                   type="date"
                   value={formData.start_date}
-                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                  onChange={(e) => {
+                    const newStartDate = e.target.value;
+                    // Calculate the difference and adjust end date by the same interval
+                    if (formData.start_date && formData.end_date) {
+                      const oldStart = new Date(formData.start_date);
+                      const oldEnd = new Date(formData.end_date);
+                      const diffDays = Math.round((oldEnd.getTime() - oldStart.getTime()) / (1000 * 60 * 60 * 24));
+                      const newEnd = new Date(newStartDate);
+                      newEnd.setDate(newEnd.getDate() + diffDays);
+                      setFormData({ 
+                        ...formData, 
+                        start_date: newStartDate,
+                        end_date: newEnd.toISOString().split('T')[0]
+                      });
+                    } else {
+                      setFormData({ ...formData, start_date: newStartDate, end_date: newStartDate });
+                    }
+                  }}
                   className="w-full px-3 py-2 bg-[#0d0f15] border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   required
                 />
@@ -370,7 +409,37 @@ export default function EventModal({ event, defaultDate, onClose, onSave, catego
                   <input
                     type="time"
                     value={formData.start_time}
-                    onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                    onChange={(e) => {
+                      const newStartTime = e.target.value;
+                      // Calculate the difference and adjust end time by the same interval
+                      if (formData.start_time && formData.end_time) {
+                        const [oldStartH, oldStartM] = formData.start_time.split(':').map(Number);
+                        const [oldEndH, oldEndM] = formData.end_time.split(':').map(Number);
+                        const oldStartMinutes = oldStartH * 60 + oldStartM;
+                        const oldEndMinutes = oldEndH * 60 + oldEndM;
+                        const diffMinutes = oldEndMinutes - oldStartMinutes;
+                        
+                        const [newStartH, newStartM] = newStartTime.split(':').map(Number);
+                        const newStartMinutes = newStartH * 60 + newStartM;
+                        let newEndMinutes = newStartMinutes + diffMinutes;
+                        
+                        // Handle day overflow (keep within 0-23:59)
+                        if (newEndMinutes >= 24 * 60) newEndMinutes = 23 * 60 + 59;
+                        if (newEndMinutes < 0) newEndMinutes = 0;
+                        
+                        const newEndH = Math.floor(newEndMinutes / 60);
+                        const newEndM = newEndMinutes % 60;
+                        const newEndTime = `${String(newEndH).padStart(2, '0')}:${String(newEndM).padStart(2, '0')}`;
+                        
+                        setFormData({ 
+                          ...formData, 
+                          start_time: newStartTime,
+                          end_time: newEndTime
+                        });
+                      } else {
+                        setFormData({ ...formData, start_time: newStartTime });
+                      }
+                    }}
                     className="w-full px-3 py-2 bg-[#0d0f15] border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   />
                 </div>
