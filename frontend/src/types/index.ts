@@ -137,10 +137,40 @@ export interface CalendarEvent {
   is_all_day: boolean; // Ganztägiges Event
   color: string;      // Hex color
   location: string;
-  guests: string;     // Comma-separated list of guest names
+  tags: string[];     // Array of label names
   created_by: string;
   creator_name: string;
   creator_avatar: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventGuest {
+  id: number;
+  event_id: number;
+  user_id: string;
+  user_name: string;
+  user_display_name: string;
+  user_avatar: string;
+  rsvp_status: 'pending' | 'accepted' | 'declined';
+  rsvp_at: string | null;
+  invited_at: string;
+}
+
+export interface EventLabel {
+  id: number;
+  guild_id: string;
+  name: string;
+  color: string;
+  created_at: string;
+}
+
+export interface EventChecklistItem {
+  id: number;
+  event_id: number;
+  text: string;
+  is_completed: boolean;
+  position: number;
   created_at: string;
   updated_at: string;
 }
@@ -155,7 +185,7 @@ export interface CreateEventRequest {
   is_all_day: boolean;
   color: string;
   location: string;
-  guests: string;
+  tags: string[];
 }
 
 export interface CalendarMatch {

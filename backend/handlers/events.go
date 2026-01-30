@@ -13,34 +13,34 @@ import (
 )
 
 type EventRequest struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	StartDate   string `json:"start_date"`
-	EndDate     string `json:"end_date"`
-	StartTime   string `json:"start_time"`
-	EndTime     string `json:"end_time"`
-	Color       string `json:"color"`
-	Location    string `json:"location"`
-	Guests      string `json:"guests"`
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+	StartDate   string   `json:"start_date"`
+	EndDate     string   `json:"end_date"`
+	StartTime   string   `json:"start_time"`
+	EndTime     string   `json:"end_time"`
+	Color       string   `json:"color"`
+	Location    string   `json:"location"`
+	Tags        []string `json:"tags"`
 }
 
 type EventResponse struct {
-	ID            int64  `json:"id"`
-	GuildID       string `json:"guild_id"`
-	Title         string `json:"title"`
-	Description   string `json:"description"`
-	StartDate     string `json:"start_date"`
-	EndDate       string `json:"end_date"`
-	StartTime     string `json:"start_time"`
-	EndTime       string `json:"end_time"`
-	Color         string `json:"color"`
-	Location      string `json:"location"`
-	Guests        string `json:"guests"`
-	CreatedBy     string `json:"created_by"`
-	CreatorName   string `json:"creator_name"`
-	CreatorAvatar string `json:"creator_avatar"`
-	CreatedAt     string `json:"created_at"`
-	UpdatedAt     string `json:"updated_at"`
+	ID            int64    `json:"id"`
+	GuildID       string   `json:"guild_id"`
+	Title         string   `json:"title"`
+	Description   string   `json:"description"`
+	StartDate     string   `json:"start_date"`
+	EndDate       string   `json:"end_date"`
+	StartTime     string   `json:"start_time"`
+	EndTime       string   `json:"end_time"`
+	Color         string   `json:"color"`
+	Location      string   `json:"location"`
+	Tags          []string `json:"tags"`
+	CreatedBy     string   `json:"created_by"`
+	CreatorName   string   `json:"creator_name"`
+	CreatorAvatar string   `json:"creator_avatar"`
+	CreatedAt     string   `json:"created_at"`
+	UpdatedAt     string   `json:"updated_at"`
 }
 
 // GetEvents holt alle Events
@@ -59,7 +59,7 @@ func GetEvents(db *sql.DB) http.HandlerFunc {
 
 		query := `
 			SELECT e.id, e.guild_id, e.title, e.description, e.start_date, e.end_date,
-			       e.start_time, e.end_time, e.color, e.location, e.guests, e.created_by,
+			       e.start_time, e.end_time, e.color, e.location, COALESCE(e.tags, '[]'), e.created_by,
 			       COALESCE(u.display_name, u.name, 'Unknown') as creator_name,
 			       u.avatar,
 			       e.created_at, e.updated_at
@@ -88,12 +88,12 @@ func GetEvents(db *sql.DB) http.HandlerFunc {
 		events := []EventResponse{}
 		for rows.Next() {
 			var event EventResponse
-			var startTime, endTime, guests, creatorAvatar sql.NullString
+			var startTime, endTime, tagsJSON, creatorAvatar sql.NullString
 
 			err := rows.Scan(
 				&event.ID, &event.GuildID, &event.Title, &event.Description,
 				&event.StartDate, &event.EndDate, &startTime, &endTime, &event.Color,
-				&event.Location, &guests, &event.CreatedBy, &event.CreatorName,
+				&event.Location, &tagsJSON, &event.CreatedBy, &event.CreatorName,
 				&creatorAvatar, &event.CreatedAt, &event.UpdatedAt,
 			)
 			if err != nil {
@@ -107,8 +107,11 @@ func GetEvents(db *sql.DB) http.HandlerFunc {
 			if endTime.Valid {
 				event.EndTime = endTime.String
 			}
-			if guests.Valid {
-				event.Guests = guests.String
+			if tagsJSON.Valid && tagsJSON.String != "" {
+				json.Unmarshal([]byte(tagsJSON.String), &event.Tags)
+			}
+			if event.Tags == nil {
+				event.Tags = []string{}
 			}
 			if creatorAvatar.Valid {
 				event.CreatorAvatar = creatorAvatar.String
@@ -131,7 +134,7 @@ func GetEventByID(db *sql.DB) http.HandlerFunc {
 
 		query := `
 			SELECT e.id, e.guild_id, e.title, e.description, e.start_date, e.end_date,
-			       e.start_time, e.end_time, e.color, e.location, e.guests, e.created_by,
+			       e.start_time, e.end_time, e.color, e.location, COALESCE(e.tags, '[]'), e.created_by,
 			       COALESCE(u.display_name, u.name, 'Unknown') as creator_name,
 			       u.avatar,
 			       e.created_at, e.updated_at
@@ -141,12 +144,12 @@ func GetEventByID(db *sql.DB) http.HandlerFunc {
 		`
 
 		var event EventResponse
-		var startTime, endTime, guests, creatorAvatar sql.NullString
+		var startTime, endTime, tagsJSON, creatorAvatar sql.NullString
 
 		err := db.QueryRow(query, eventID).Scan(
 			&event.ID, &event.GuildID, &event.Title, &event.Description,
 			&event.StartDate, &event.EndDate, &startTime, &endTime, &event.Color,
-			&event.Location, &guests, &event.CreatedBy, &event.CreatorName,
+			&event.Location, &tagsJSON, &event.CreatedBy, &event.CreatorName,
 			&creatorAvatar, &event.CreatedAt, &event.UpdatedAt,
 		)
 
@@ -166,8 +169,11 @@ func GetEventByID(db *sql.DB) http.HandlerFunc {
 		if endTime.Valid {
 			event.EndTime = endTime.String
 		}
-		if guests.Valid {
-			event.Guests = guests.String
+		if tagsJSON.Valid && tagsJSON.String != "" {
+			json.Unmarshal([]byte(tagsJSON.String), &event.Tags)
+		}
+		if event.Tags == nil {
+			event.Tags = []string{}
 		}
 		if creatorAvatar.Valid {
 			event.CreatorAvatar = creatorAvatar.String
@@ -217,6 +223,13 @@ func CreateEvent(db *sql.DB) http.HandlerFunc {
 			req.Color = "#4285F4"
 		}
 
+		// Convert tags to JSON
+		tagsJSON := "[]"
+		if len(req.Tags) > 0 {
+			tagsBytes, _ := json.Marshal(req.Tags)
+			tagsJSON = string(tagsBytes)
+		}
+
 		event := &tables.Event{
 			GuildID:     guildID,
 			Title:       req.Title,
@@ -227,7 +240,7 @@ func CreateEvent(db *sql.DB) http.HandlerFunc {
 			EndTime:     req.EndTime,
 			Color:       req.Color,
 			Location:    req.Location,
-			Guests:      req.Guests,
+			Tags:        tagsJSON,
 			CreatedBy:   userID,
 		}
 
@@ -317,6 +330,13 @@ func UpdateEvent(db *sql.DB) http.HandlerFunc {
 			req.EndDate = req.StartDate
 		}
 
+		// Convert tags to JSON
+		tagsJSON := "[]"
+		if len(req.Tags) > 0 {
+			tagsBytes, _ := json.Marshal(req.Tags)
+			tagsJSON = string(tagsBytes)
+		}
+
 		event := &tables.Event{
 			ID:          id,
 			Title:       req.Title,
@@ -327,7 +347,7 @@ func UpdateEvent(db *sql.DB) http.HandlerFunc {
 			EndTime:     req.EndTime,
 			Color:       req.Color,
 			Location:    req.Location,
-			Guests:      req.Guests,
+			Tags:        tagsJSON,
 		}
 
 		if err := tables.UpdateEvent(db, event); err != nil {

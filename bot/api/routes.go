@@ -29,6 +29,9 @@ func (s *Server) RegisterRoutes() http.Handler {
 	// Task Notification Endpoint
 	mux.HandleFunc("/api/notifications/task", handlers.TaskNotificationHandler(s.botSession, s.botDB))
 
+	// Event Notification Endpoint
+	mux.HandleFunc("/api/notifications/event", handlers.EventNotificationHandler(s.botSession, s.botDB))
+
 	// Wrap mit CORS Middleware
 	return s.corsMiddleware(mux)
 }

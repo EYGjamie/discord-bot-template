@@ -89,6 +89,25 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux.HandleFunc("PUT /api/events/{id}", handlers.UpdateEvent(s.db.DB()))
 	mux.HandleFunc("DELETE /api/events/{id}", handlers.DeleteEvent(s.db.DB()))
 
+	// Event Guest routes
+	mux.HandleFunc("GET /api/events/{id}/guests", handlers.GetEventGuests(s.db.DB()))
+	mux.HandleFunc("POST /api/events/{id}/guests", middleware.RequireAuth(handlers.InviteEventGuest(s.db.DB())))
+	mux.HandleFunc("DELETE /api/events/{id}/guests/{guestId}", middleware.RequireAuth(handlers.RemoveEventGuest(s.db.DB())))
+	mux.HandleFunc("PUT /api/events/{id}/guests/{guestId}/rsvp", middleware.RequireAuth(handlers.UpdateGuestRSVP(s.db.DB())))
+	mux.HandleFunc("PUT /api/events/{id}/rsvp/{userId}", handlers.RSVPByUserID(s.db.DB())) // For Discord Bot
+
+	// Event Label routes
+	mux.HandleFunc("GET /api/event-labels", handlers.GetEventLabels(s.db.DB()))
+	mux.HandleFunc("POST /api/event-labels", middleware.RequireAuth(handlers.CreateEventLabel(s.db.DB())))
+	mux.HandleFunc("PUT /api/event-labels/{labelId}", middleware.RequireAuth(handlers.UpdateEventLabel(s.db.DB())))
+	mux.HandleFunc("DELETE /api/event-labels/{labelId}", middleware.RequireAuth(handlers.DeleteEventLabel(s.db.DB())))
+
+	// Event Checklist routes
+	mux.HandleFunc("GET /api/events/{id}/checklist", handlers.GetEventChecklist(s.db.DB()))
+	mux.HandleFunc("POST /api/events/{id}/checklist", middleware.RequireAuth(handlers.CreateEventChecklistItem(s.db.DB())))
+	mux.HandleFunc("PUT /api/events/{id}/checklist/{itemId}", middleware.RequireAuth(handlers.UpdateEventChecklistItem(s.db.DB())))
+	mux.HandleFunc("DELETE /api/events/{id}/checklist/{itemId}", middleware.RequireAuth(handlers.DeleteEventChecklistItem(s.db.DB())))
+
 	// Event Category routes (GET public, POST/PUT/DELETE admin only)
 	mux.HandleFunc("GET /api/event-categories", handlers.GetEventCategories(s.db.DB()))
 	mux.HandleFunc("POST /api/event-categories",

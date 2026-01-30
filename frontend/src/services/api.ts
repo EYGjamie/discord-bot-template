@@ -103,7 +103,7 @@ export const api = {
     getEventById: (id: number) => 
       fetch(`${API_BASE_URL}/api/events/${id}`).then(res => res.json()),
     
-    createEvent: (data: { title: string; description: string; start_date: string; end_date: string; start_time: string; end_time: string; color: string; location: string; guests: string }) =>
+    createEvent: (data: { title: string; description: string; start_date: string; end_date: string; start_time: string; end_time: string; color: string; location: string; tags: string[] }) =>
       fetch(`${API_BASE_URL}/api/events`, {
         method: 'POST',
         headers: { 
@@ -113,7 +113,7 @@ export const api = {
         body: JSON.stringify(data),
       }).then(res => res.json()),
     
-    updateEvent: (id: number, data: { title: string; description: string; start_date: string; end_date: string; start_time: string; end_time: string; color: string; location: string; guests: string }) =>
+    updateEvent: (id: number, data: { title: string; description: string; start_date: string; end_date: string; start_time: string; end_time: string; color: string; location: string; tags: string[] }) =>
       fetch(`${API_BASE_URL}/api/events/${id}`, {
         method: 'PUT',
         headers: { 
@@ -130,6 +130,97 @@ export const api = {
           'X-User-ID': getUserId(),
         },
       }).then(res => res.json()),
+
+    // Event Guests
+    getGuests: (eventId: number) =>
+      fetch(`${API_BASE_URL}/api/events/${eventId}/guests`).then(res => res.json()),
+    
+    inviteGuest: (eventId: number, userId: string) =>
+      fetch(`${API_BASE_URL}/api/events/${eventId}/guests`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-User-ID': getUserId(),
+        },
+        body: JSON.stringify({ user_id: userId }),
+      }).then(res => res.json()),
+    
+    removeGuest: (eventId: number, guestId: number) =>
+      fetch(`${API_BASE_URL}/api/events/${eventId}/guests/${guestId}`, {
+        method: 'DELETE',
+        headers: { 'X-User-ID': getUserId() },
+      }),
+    
+    updateGuestRSVP: (eventId: number, guestId: number, status: string) =>
+      fetch(`${API_BASE_URL}/api/events/${eventId}/guests/${guestId}/rsvp`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-User-ID': getUserId(),
+        },
+        body: JSON.stringify({ status }),
+      }).then(res => res.json()),
+
+    // Event Checklist
+    getChecklist: (eventId: number) =>
+      fetch(`${API_BASE_URL}/api/events/${eventId}/checklist`).then(res => res.json()),
+    
+    createChecklistItem: (eventId: number, text: string) =>
+      fetch(`${API_BASE_URL}/api/events/${eventId}/checklist`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-User-ID': getUserId(),
+        },
+        body: JSON.stringify({ text }),
+      }).then(res => res.json()),
+    
+    updateChecklistItem: (eventId: number, itemId: number, data: { text?: string; is_completed?: boolean }) =>
+      fetch(`${API_BASE_URL}/api/events/${eventId}/checklist/${itemId}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-User-ID': getUserId(),
+        },
+        body: JSON.stringify(data),
+      }).then(res => res.json()),
+    
+    deleteChecklistItem: (eventId: number, itemId: number) =>
+      fetch(`${API_BASE_URL}/api/events/${eventId}/checklist/${itemId}`, {
+        method: 'DELETE',
+        headers: { 'X-User-ID': getUserId() },
+      }),
+  },
+
+  // Event Labels (global per guild)
+  eventLabels: {
+    getAll: () => fetch(`${API_BASE_URL}/api/event-labels`).then(res => res.json()),
+    
+    create: (name: string, color: string) =>
+      fetch(`${API_BASE_URL}/api/event-labels`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-User-ID': getUserId(),
+        },
+        body: JSON.stringify({ name, color }),
+      }).then(res => res.json()),
+    
+    update: (labelId: number, name: string, color: string) =>
+      fetch(`${API_BASE_URL}/api/event-labels/${labelId}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-User-ID': getUserId(),
+        },
+        body: JSON.stringify({ name, color }),
+      }).then(res => res.json()),
+    
+    delete: (labelId: number) =>
+      fetch(`${API_BASE_URL}/api/event-labels/${labelId}`, {
+        method: 'DELETE',
+        headers: { 'X-User-ID': getUserId() },
+      }),
   },
 
   matches: {
