@@ -2,7 +2,6 @@ package notifications
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -123,17 +122,23 @@ func (s *EventNotificationService) NotifyEventInvitation(eventID int64, guestUse
 		return fmt.Errorf("failed to get event: %v", err)
 	}
 
-	// Parse tags
-	var tags []string
-	json.Unmarshal([]byte(tagsJSON), &tags)
-
-	// Get inviter name
+	// Get inviter info (name and avatar)
 	inviterName := "Jemand"
+	inviterAvatarURL := ""
 	if member, err := s.session.GuildMember(event.GuildID, event.CreatedBy); err == nil {
-		if member.Nick != "" {
+		// Prefer DisplayName > Nick > GlobalName > Username
+		if member.User.GlobalName != "" {
+			inviterName = member.User.GlobalName
+		} else if member.Nick != "" {
 			inviterName = member.Nick
 		} else {
 			inviterName = member.User.Username
+		}
+		// Get avatar URL
+		if member.Avatar != "" {
+			inviterAvatarURL = fmt.Sprintf("https://cdn.discordapp.com/guilds/%s/users/%s/avatars/%s.png", event.GuildID, event.CreatedBy, member.Avatar)
+		} else if member.User.Avatar != "" {
+			inviterAvatarURL = fmt.Sprintf("https://cdn.discordapp.com/avatars/%s/%s.png", event.CreatedBy, member.User.Avatar)
 		}
 	}
 
@@ -149,6 +154,13 @@ func (s *EventNotificationService) NotifyEventInvitation(eventID int64, guestUse
 		},
 	}
 
+	// Add inviter avatar as thumbnail
+	if inviterAvatarURL != "" {
+		embed.Thumbnail = &discordgo.MessageEmbedThumbnail{
+			URL: inviterAvatarURL,
+		}
+	}
+
 	// Add event details
 	if event.Description != "" {
 		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
@@ -158,17 +170,17 @@ func (s *EventNotificationService) NotifyEventInvitation(eventID int64, guestUse
 		})
 	}
 
-	// Format date/time
-	dateStr := event.StartDate
+	// Format date/time nicely
+	dateStr := formatDateNice(event.StartDate)
 	if event.EndDate != event.StartDate {
-		dateStr = fmt.Sprintf("%s - %s", event.StartDate, event.EndDate)
+		dateStr = fmt.Sprintf("%s - %s", formatDateNice(event.StartDate), formatDateNice(event.EndDate))
 	}
 	if !event.IsAllDay && event.StartTime != "" {
-		timeStr := event.StartTime
+		timeStr := formatTimeNice(event.StartTime)
 		if event.EndTime != "" && event.EndTime != event.StartTime {
-			timeStr = fmt.Sprintf("%s - %s", event.StartTime, event.EndTime)
+			timeStr = fmt.Sprintf("%s - %s", formatTimeNice(event.StartTime), formatTimeNice(event.EndTime))
 		}
-		dateStr = fmt.Sprintf("%s, %s", dateStr, timeStr)
+		dateStr = fmt.Sprintf("%s, %s Uhr", dateStr, timeStr)
 	} else if event.IsAllDay {
 		dateStr = fmt.Sprintf("%s (Ganztägig)", dateStr)
 	}
@@ -183,21 +195,6 @@ func (s *EventNotificationService) NotifyEventInvitation(eventID int64, guestUse
 		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
 			Name:   "📍 Ort",
 			Value:  event.Location,
-			Inline: true,
-		})
-	}
-
-	if len(tags) > 0 {
-		tagsStr := ""
-		for i, tag := range tags {
-			if i > 0 {
-				tagsStr += ", "
-			}
-			tagsStr += tag
-		}
-		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-			Name:   "🏷️ Labels",
-			Value:  tagsStr,
 			Inline: true,
 		})
 	}
@@ -420,4 +417,37 @@ func (s *EventNotificationService) sendDM(userID string, embed *discordgo.Messag
 
 	log.Printf("Sent event notification to user %s", userID)
 	return nil
+}
+
+// formatDateNice formats a date string (YYYY-MM-DD or ISO) to a nice German format
+func formatDateNice(dateStr string) string {
+	// Try parsing different date formats
+	var t time.Time
+	var err error
+
+	// Try ISO format first (2026-01-31T00:00:00Z)
+	t, err = time.Parse(time.RFC3339, dateStr)
+	if err != nil {
+		// Try simple date format (2026-01-31)
+		t, err = time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			return dateStr // Return as-is if parsing fails
+		}
+	}
+
+	// German weekday names
+	weekdays := []string{"Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"}
+	// German month names
+	months := []string{"Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"}
+
+	return fmt.Sprintf("%s, %d. %s %d", weekdays[t.Weekday()], t.Day(), months[t.Month()-1], t.Year())
+}
+
+// formatTimeNice formats a time string (HH:MM:SS or HH:MM) to HH:MM
+func formatTimeNice(timeStr string) string {
+	// Remove seconds if present
+	if len(timeStr) >= 5 {
+		return timeStr[:5]
+	}
+	return timeStr
 }
